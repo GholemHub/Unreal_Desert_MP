@@ -1,0 +1,405 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "Character/BlasterCharacter.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "Camera/CameraComponent.h"
+#include "Components/SphereComponent.h"
+#include "Components/InputComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/WidgetComponent.h"
+#include "Components/CombatComponent.h"
+#include "GameFramework/Character.h"
+#include "Components/InputComponent.h"
+#include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
+#include "HUD/OverheadWidget.h"
+#include "Net/UnrealNetwork.h"
+#include "Weapon/Weapon.h"
+#include "Animation/BlsterAnimInstance.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "GameFramework/CharacterMovementComponent.h"
+
+
+// Sets default values
+ABlasterCharacter::ABlasterCharacter()
+{
+ 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	PrimaryActorTick.bCanEverTick = true;
+
+	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>("SpringAramComponent");
+	SpringArmComponent->SetupAttachment(GetRootComponent());
+	SpringArmComponent->bUsePawnControlRotation = true;
+
+	CameraComponent = CreateDefaultSubobject<UCameraComponent>("CameraComponent");
+	CameraComponent->SetupAttachment(SpringArmComponent);
+
+	CameraCollisionComponent = CreateDefaultSubobject<USphereComponent>("CameraCollisionComponent");
+	CameraCollisionComponent->SetupAttachment(CameraComponent);
+	CameraCollisionComponent->SetSphereRadius(10.0f);
+	CameraCollisionComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
+
+	//OverheadWidget = CreateDefaultSubobject<UWidgetComponent>("OverheadWidget");
+	//OverheadWidget->SetupAttachment(RootComponent);
+
+	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+
+	Combat = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
+	Combat->SetIsReplicated(true);
+	
+	TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+}
+// Called to bind functionality to input
+void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent))
+	{
+		EnhancedInputComponent->BindAction(MovementInputAction, ETriggerEvent::Triggered, this, &ABlasterCharacter::Move);
+		EnhancedInputComponent->BindAction(CameraMovementInputAction, ETriggerEvent::Triggered, this, &ABlasterCharacter::MoveCamera); 
+		EnhancedInputComponent->BindAction(JumpMovementInputAction, ETriggerEvent::Triggered, this, &ABlasterCharacter::Jump);
+		EnhancedInputComponent->BindAction(EquipInputAction, ETriggerEvent::Triggered, this, &ABlasterCharacter::Equip);
+		EnhancedInputComponent->BindAction(CrouchInputAction, ETriggerEvent::Triggered, this, &ABlasterCharacter::CrouchBtnPressed);
+		EnhancedInputComponent->BindAction(FirePressedInputAction, ETriggerEvent::Triggered, this, &ABlasterCharacter::FireBtnPressed);
+		EnhancedInputComponent->BindAction(FireReleasedInputAction, ETriggerEvent::Triggered, this, &ABlasterCharacter::FireBtnReleased);
+		EnhancedInputComponent->BindAction(AimInputAction, ETriggerEvent::Triggered, this, &ABlasterCharacter::AimBtnPressed);
+		EnhancedInputComponent->BindAction(AimInputAction2, ETriggerEvent::Triggered, this, &ABlasterCharacter::AimBtnReleased);
+	}
+}
+void ABlasterCharacter::ServerEquipButtonPressed_Implementation()
+{
+	if (Combat)
+	{
+		Combat->EquipWeapon(OverlappingWeapon);
+	}
+}
+
+void  ABlasterCharacter::SetOverlappingWeapon(AWeapon* Weapon)
+{
+	if (OverlappingWeapon)
+	{
+		OverlappingWeapon->ShowPickupWidget(false);
+	}
+	OverlappingWeapon = Weapon;
+	if (IsLocallyControlled())
+	{
+		if (OverlappingWeapon)
+		{
+			OverlappingWeapon->ShowPickupWidget(true);
+		}
+	}
+}
+
+bool ABlasterCharacter::IsWeaponEquipped()
+{
+	return (Combat && Combat->EquippedWeapon);
+}
+
+void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(ABlasterCharacter, OverlappingWeapon, COND_OwnerOnly);
+}
+
+void ABlasterCharacter::OnRep_OverlappingWeapon(AWeapon* LastWeapon)
+{
+	if (OverlappingWeapon)
+	{
+		OverlappingWeapon->ShowPickupWidget(true);
+	}
+	if (LastWeapon)
+	{
+		LastWeapon->ShowPickupWidget(false);
+	}
+}
+
+// Called when the game starts or when spawned
+void ABlasterCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	check(CameraCollisionComponent);
+
+	CameraCollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &ABlasterCharacter::OnCameraCollisionBeginOverlap);
+	CameraCollisionComponent->OnComponentEndOverlap.AddDynamic(this, &ABlasterCharacter::OnCameraCollisionEndOverlap);
+
+	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+		{
+			Subsystem->AddMappingContext(InputMappingContext, 0);
+			Subsystem->AddMappingContext(InputMappingContext_Firing, 0);
+		}
+	}
+}
+
+void ABlasterCharacter::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	if (Combat)
+	{
+		Combat->Character = this;
+	}
+}
+
+void ABlasterCharacter::HideCameraIfCharacterClose()
+{
+	if (!IsLocallyControlled()) return;
+	if ((GetFollowCamera()->GetComponentLocation() - GetActorLocation()).Size() < CameraThreshold)
+	{
+		GetMesh()->SetVisibility(false);
+		if(Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaoponMesh())
+		{
+			Combat->EquippedWeapon->GetWeaoponMesh()->bOwnerNoSee = true;
+		}
+	}
+	else
+	{
+		GetMesh()->SetVisibility(true);
+		if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaoponMesh())
+		{
+			Combat->EquippedWeapon->GetWeaoponMesh()->bOwnerNoSee = false;
+		}
+	}
+}
+
+void ABlasterCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	AimOffset(DeltaTime);
+	HideCameraIfCharacterClose();
+}
+
+void ABlasterCharacter::Move(const FInputActionValue& Value)
+{
+	const FVector2D MovementVector = Value.Get<FVector2D>();
+
+	const FVector Forward = GetActorForwardVector();
+	AddMovementInput(Forward, MovementVector.Y);
+	const FVector Right = GetActorRightVector();
+	AddMovementInput(Right, MovementVector.X);
+}
+
+void ABlasterCharacter::Equip()
+{
+	if (Combat)
+	{
+		if (HasAuthority())
+		{
+			Combat->EquipWeapon(OverlappingWeapon);
+		}
+		else {
+			ServerEquipButtonPressed();
+		}	
+	}
+}
+
+void ABlasterCharacter::CrouchBtnPressed()
+{
+	if (!bIsCrouched && Combat->EquippedWeapon != 0) {
+		UE_LOG(LogTemp, Display, TEXT("Crouch without Weapon"), Combat->EquippedWeapon)
+		Crouch();
+	}
+	else if(bIsCrouched && Combat->EquippedWeapon != 0){
+		UE_LOG(LogTemp, Display, TEXT("Uncrouch"), Combat->EquippedWeapon)
+		UnCrouch();
+	}
+	else {
+		 
+	}
+
+}
+
+void ABlasterCharacter::AimBtnPressed()
+{
+	if (Combat)
+	{
+		Combat->SetAiming(true);
+	}
+}
+
+bool ABlasterCharacter::IsAiming()
+{
+	return (Combat && Combat->bAiming);
+}
+
+void ABlasterCharacter::PlayFireMontage(bool bAiming)
+{
+	if (Combat == nullptr || Combat->EquippedWeapon == nullptr) return;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && FireWeaponMontage)
+	{
+		AnimInstance->Montage_Play(FireWeaponMontage);
+		FName SectioName;
+		SectioName = bAiming ? FName("RifleAim") : FName("RifleHip");
+		AnimInstance->Montage_JumpToSection(SectioName);
+	}
+}
+
+AWeapon* ABlasterCharacter::GetEquippedWeapon()
+{
+	if (Combat == nullptr) return nullptr;
+
+	return Combat->EquippedWeapon;
+}
+
+FVector ABlasterCharacter::GetHitTarget() const
+{
+	if (Combat == nullptr) return FVector();
+
+	return Combat->HitTarget;
+	
+}
+
+void ABlasterCharacter::AimBtnReleased()
+{
+	if (Combat)
+	{
+		Combat->SetAiming(false);
+	}
+}
+
+void ABlasterCharacter::FireBtnPressed()
+{
+	UE_LOG(LogTemp, Warning, TEXT("FIRE!"))
+	if(Combat)
+	{
+		Combat->FireButtonPressed(true);
+	}
+}
+
+void ABlasterCharacter::FireBtnReleased()
+{
+	UE_LOG(LogTemp, Warning, TEXT("NOT FIRE!"))
+	if (Combat)
+	{
+		Combat->FireButtonPressed(false);
+	}
+}
+
+float ABlasterCharacter::CalculateSpeed()
+{
+	FVector Velocity = GetVelocity();
+	Velocity.Z = 0.f;
+	return Velocity.Size();
+}
+
+void ABlasterCharacter::TurnInPlace(float DeltaTime)
+{
+	//UE_LOG(LogTemp, Warning, TEXT("YAW: %f"), AO_Yaw);
+	if (AO_Yaw > 90.f)
+	{
+		TurningInPlace = ETurningInPlace::ETIP_Left;
+	}
+	else if (AO_Yaw < -90.f)
+	{
+		TurningInPlace = ETurningInPlace::ETIP_Right;
+	}
+
+	if (TurningInPlace != ETurningInPlace::ETIP_NotTurning)
+	{
+		
+		IntorpAO_Yaw = FMath::FInterpTo(IntorpAO_Yaw, 0.f, DeltaTime, 5.f);
+		AO_Yaw = IntorpAO_Yaw;
+		UE_LOG(LogTemp, Warning, TEXT("YAW2: %f"), AO_Yaw);
+		
+		if (FMath::Abs(AO_Yaw) < 15.f)
+		{
+			TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+			StartingAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
+		}
+	}
+}
+
+void ABlasterCharacter::AimOffset(float DeltaTime)
+{
+	if (Combat && Combat->EquippedWeapon == nullptr) return;
+
+	float Speed = CalculateSpeed();
+	bool bIsInAir = GetCharacterMovement()->IsFalling();
+	if (Speed == 0.f && !bIsInAir)
+	{
+		FRotator CurrentAimRotatoin = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
+		FRotator DeltaAimRotation = UKismetMathLibrary::NormalizedDeltaRotator(StartingAimRotation, CurrentAimRotatoin);
+		AO_Yaw = DeltaAimRotation.Yaw;
+		if (TurningInPlace == ETurningInPlace::ETIP_NotTurning) 
+		{
+			IntorpAO_Yaw = AO_Yaw;
+		}
+		
+		bUseControllerRotationYaw = true;
+		TurnInPlace(DeltaTime);
+	}
+	if (FirstTime)
+	{
+		StartingAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
+		AO_Yaw = 0.f;
+		
+		FirstTime = false;
+		TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+	}
+	if (Speed > 0.f || bIsInAir)
+	{	
+		StartingAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
+		AO_Yaw = 0.f;
+		TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+	}
+
+	AO_Pitch = GetBaseAimRotation().Pitch;
+	if (AO_Pitch > 90.f && !IsLocallyControlled())
+	{
+		//Map pitch from the ramge
+		FVector2D InRange(270.f, 360.f);
+		FVector2D OutRange(-90.f, 0.f);
+		AO_Pitch = FMath::GetMappedRangeValueClamped(InRange, OutRange, AO_Pitch);
+	}
+}
+
+
+void ABlasterCharacter::MoveCamera(const FInputActionValue& Value)
+{
+	const FVector2D MovementVector = Value.Get<FVector2D>();
+	AddControllerYawInput(MovementVector.X);
+	AddControllerPitchInput(MovementVector.Y);
+}
+
+
+
+void ABlasterCharacter::OnCameraCollisionBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp,
+	int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	CheckKameraOverlap();
+}
+void ABlasterCharacter::OnCameraCollisionEndOverlap(
+	UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	CheckKameraOverlap();
+}
+
+void ABlasterCharacter::CheckKameraOverlap()
+{
+	const auto HideMesh = CameraCollisionComponent->IsOverlappingComponent(GetCapsuleComponent());
+	GetMesh()->SetOwnerNoSee(HideMesh);
+	TArray<USceneComponent*> MeshChildren;
+	GetMesh()->GetChildrenComponents(true, MeshChildren);
+
+	for (auto MeshChild : MeshChildren)
+	{
+		const auto MeshChildGeometry = Cast<UPrimitiveComponent>(MeshChild);
+		if (MeshChildGeometry)
+		{
+			MeshChildGeometry->SetOwnerNoSee(HideMesh);
+		}
+	}
+}
+
+float ABlasterCharacter::GetMovementDirection() const
+{
+	const auto VelocityNormal = GetVelocity().GetSafeNormal();
+	const auto AngleBetween = FMath::Acos(FVector::DotProduct(GetActorForwardVector(), VelocityNormal));
+	const auto CrossProduct = FVector::CrossProduct(GetActorForwardVector(), VelocityNormal);
+	return FMath::RadiansToDegrees(AngleBetween) * FMath::Sign(CrossProduct.Z);
+}
