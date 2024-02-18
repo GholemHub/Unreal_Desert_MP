@@ -74,8 +74,15 @@ protected:
 	void FireBtnReleased();
 	void AimOffset(float DeltaTime);
 
+
+	/*
+	Montage
+	*/
 	UPROPERTY(EditAnywhere, Category = Combat)
 	class UAnimMontage* FireWeaponMontage;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	UAnimMontage* HitReactMontage;
 
 	void HideCameraIfCharacterClose();
 
@@ -97,6 +104,7 @@ public:
 	bool IsWeaponEquipped();
 	bool IsAiming();
 	void PlayFireMontage(bool bAiming);
+	void PlayHitReactMontage();
 
 	FORCEINLINE float GetAO_Yaw() const {return AO_Yaw;}
 	FORCEINLINE float GetAO_Pitch() const {return AO_Pitch;}
@@ -106,8 +114,8 @@ public:
 
 	FVector GetHitTarget() const;
 
-	
-
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastHit();
 private:
 
 	void CheckKameraOverlap();
@@ -123,6 +131,7 @@ private:
 		class AWeapon* OverlappingWeapon;
 	UPROPERTY(VisibleAnywhere)
 		class UCombatComponent* Combat;
+
 	UFUNCTION(Server, Reliable)
 		void ServerEquipButtonPressed();
 	UFUNCTION()

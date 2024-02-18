@@ -12,6 +12,7 @@
 #include "PlayerController/BlasterPlayerController.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Character.h"
+#include "TimerManager.h"
 //#include "HUD/BlasterHUD.h"
 
 UCombatComponent::UCombatComponent()
@@ -43,16 +44,25 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 
 void UCombatComponent::FireButtonPressed(bool bPressed)
 {
+	UE_LOG(LogTemp, Warning, TEXT("FireButtonPressed"))
 	bFireBtnPressed = bPressed;
 	if (bFireBtnPressed) {
-		FHitResult HitResult;
-		TraceUnderCrosshairs(HitResult);
-		ServerFire(HitResult.ImpactPoint);
+		Fire();
+	}
+}
+
+void UCombatComponent::Fire()
+{
+	
+	if (bCanFire)
+	{	
+		ServerFire(HitTarget);
 		if (EquippedWeapon)
 		{
-			CrosshaurShootingFactor = 1.f;
+			bCanFire = false;
+			CrosshaurShootingFactor = .7f;
 		}
-		
+		StartFireTimer();
 	}
 }
 
@@ -199,15 +209,34 @@ void UCombatComponent::InterpFOV(float Deltatime)
 	}
 }
 
+void UCombatComponent::StartFireTimer()
+{
+	if (EquippedWeapon == nullptr || Character == nullptr) return;
+	Character->GetWorldTimerManager().SetTimer(
+		FireTimer,
+		this,
+		&UCombatComponent::FireTimerFinished,
+		EquippedWeapon->FireDelay
+	);
+}
+
+void UCombatComponent::FireTimerFinished()
+{
+	if (EquippedWeapon == nullptr) return;
+	bCanFire = true;
+	if (bFireBtnPressed && EquippedWeapon->bAutomatic) {
+		Fire();
+	}
+}
+
 void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
 {
 	if (EquippedWeapon == nullptr) return;
 	if (Character)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("PlayFireMontage!"))
 		Character->PlayFireMontage(bAiming);
 		EquippedWeapon->Fire(TraceHitTarget);
-	}
+	}	
 }
 
 void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
@@ -220,20 +249,12 @@ void UCombatComponent::BeginPlay()
 	Super::BeginPlay();
 	if (Character)
 	{
-		//Character->GetCharacterMovement()->MaxWalkSpeed = BaseWalk
-
 		if (Character->GetFollowCamera())
 		{
 			DefaultFOV = Character->GetFollowCamera()->FieldOfView;
 			CurrentFOV = DefaultFOV;
 		}
 	}
-	/*PrimaryComponentTick.Target = this;
-	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.SetTickFunctionEnable(true);
-	PrimaryComponentTick.RegisterTickFunction(GetComponentLevel());*/
-
-	//Controller = Cast<ABlasterPlayerController>(Character->Controller);
 }
 
 void UCombatComponent::SetAiming(bool bIsAiming)
