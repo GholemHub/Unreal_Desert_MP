@@ -8,6 +8,7 @@
 #include "Blaster/BlasterTypes/TurningInPlace.h"
 #include "Interfaces/InteractWithCrosshairsInterface.h"
 
+
 #include "BlasterCharacter.generated.h"
 
 class UCameraComponent;
@@ -28,6 +29,8 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components")
 		USpringArmComponent* SpringArmComponent;
@@ -74,7 +77,10 @@ protected:
 	void FireBtnReleased();
 	void AimOffset(float DeltaTime);
 
-
+	UFUNCTION()
+	void ReceiveDamage(AActor* DamageActor, float Damage, const UDamageType* DamageType, class AController* InstigatorController, AActor* DamageCauser);
+	UFUNCTION()
+	void UpdateHUDHealth();
 	/*
 	Montage
 	*/
@@ -84,16 +90,20 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Combat)
 	UAnimMontage* HitReactMontage;
 
+	UPROPERTY(EditAnywhere, Category = Combat)
+	UAnimMontage* DeathMontage;
+
 	void HideCameraIfCharacterClose();
 
 	UPROPERTY(EditAnywhere, Category = Camera)
 	float CameraThreshold = 200.f;
-
+	
 
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
+	UFUNCTION(NetMulticast, Reliable)
+	void Elim();
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const;
@@ -105,17 +115,16 @@ public:
 	bool IsAiming();
 	void PlayFireMontage(bool bAiming);
 	void PlayHitReactMontage();
+	void PlayDeathMontage();
 
 	FORCEINLINE float GetAO_Yaw() const {return AO_Yaw;}
 	FORCEINLINE float GetAO_Pitch() const {return AO_Pitch;}
 	AWeapon* GetEquippedWeapon();
 	FORCEINLINE ETurningInPlace GetTurningInPlace() const { return TurningInPlace; }
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return CameraComponent; }
+	FORCEINLINE bool IsElimmed() const { return bElimmed; }
 
 	FVector GetHitTarget() const;
-
-	UFUNCTION(NetMulticast, Unreliable)
-	void MulticastHit();
 private:
 
 	void CheckKameraOverlap();
@@ -147,5 +156,18 @@ private:
 	ETurningInPlace TurningInPlace;
 	void TurnInPlace(float DeltaTime);
 
+	/**
+	* PlayerHealth
+	*/
+	UPROPERTY(EditAnywhere, Category = "Player Stats")
+	float MaxHealth = 100.f;
+	UPROPERTY(ReplicatedUsing = OnRep_Health, VisibleAnywhere, Category = "Player Stats")
+	float Health = 100.f;
+	UFUNCTION()
+	void OnRep_Health();
+
+	class ABlasterPlayerController* BlasterPlayerController;
+
+	bool bElimmed = false;
 	
 };

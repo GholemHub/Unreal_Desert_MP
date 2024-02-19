@@ -35,6 +35,7 @@ void UBlsterAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	bIsCrouched = BlasterCharacter->bIsCrouched;
 	bIsAimed = BlasterCharacter->IsAiming();
 	TurningInPlace = BlasterCharacter->GetTurningInPlace();
+	bElimmed = BlasterCharacter->IsElimmed();
 
 	const auto VelocityNormal = BlasterCharacter->GetVelocity().GetSafeNormal();
 	const auto AngleBetween = FMath::Acos(FVector::DotProduct(BlasterCharacter->GetActorForwardVector(), VelocityNormal));
