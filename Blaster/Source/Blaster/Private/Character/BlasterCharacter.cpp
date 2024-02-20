@@ -21,6 +21,8 @@
 #include "Blaster/Blaster.h"
 #include "PlayerController/BlasterPlayerController.h"
 #include "GameMode/BlasterGameMode.h"
+#include "TimerManager.h"
+#include "GameFramework/PlayerController.h"
 
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -59,8 +61,6 @@ void ABlasterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	
-
 	check(CameraCollisionComponent);
 
 	CameraCollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &ABlasterCharacter::OnCameraCollisionBeginOverlap);
@@ -78,10 +78,10 @@ void ABlasterCharacter::BeginPlay()
 
 	if (HasAuthority())
 	{
-		
 		OnTakeAnyDamage.AddDynamic(this, &ABlasterCharacter::ReceiveDamage);
 	}
 }
+
 
 void ABlasterCharacter::UpdateHUDHealth()
 {
@@ -89,7 +89,7 @@ void ABlasterCharacter::UpdateHUDHealth()
 	//UE_LOG(LogTemp, Error, TEXT("LOG1 is BlasterPlayerController"))
 	if (BlasterPlayerController)
 	{
-		UE_LOG(LogTemp, Error, TEXT("LOG1 is BlasterPlayerController"))
+		UE_LOG(LogTemp, Error, TEXT("HUD Apdated"))
 		BlasterPlayerController->SetHUDHealth(Health, MaxHealth);
 	}
 }
@@ -146,7 +146,6 @@ void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 
 	DOREPLIFETIME_CONDITION(ABlasterCharacter, OverlappingWeapon, COND_OwnerOnly);
 	DOREPLIFETIME(ABlasterCharacter, Health);
-	DOREPLIFETIME(ABlasterCharacter, Health);
 }
 
 void ABlasterCharacter::OnRep_OverlappingWeapon(AWeapon* LastWeapon)
@@ -191,7 +190,7 @@ void ABlasterCharacter::HideCameraIfCharacterClose()
 	}
 }
 
-void ABlasterCharacter::Elim_Implementation()
+void ABlasterCharacter::Multicast_Elim_Implementation()
 {
 	bElimmed = true;
 	PlayDeathMontage();
@@ -202,6 +201,26 @@ void ABlasterCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	AimOffset(DeltaTime);
 	HideCameraIfCharacterClose();
+}
+
+void ABlasterCharacter::ElimTimerFinished()
+{
+	ABlasterGameMode* BlasterGameMode = GetWorld()->GetAuthGameMode<ABlasterGameMode>();
+	if (BlasterGameMode)
+	{
+		BlasterGameMode->ReplayerEliminated(this, Controller);
+	}
+}
+
+void ABlasterCharacter::Elim()
+{
+	Multicast_Elim();
+	GetWorldTimerManager().SetTimer(
+		ElimTimer,
+		this,
+		&ABlasterCharacter::ElimTimerFinished,
+		ElimDilay
+	);
 }
 
 void ABlasterCharacter::Move(const FInputActionValue& Value)
@@ -293,8 +312,6 @@ void ABlasterCharacter::PlayHitReactMontage()
 	}
 }
 
-
-
 AWeapon* ABlasterCharacter::GetEquippedWeapon()
 {
 	if (Combat == nullptr) return nullptr;
@@ -376,7 +393,6 @@ void ABlasterCharacter::OnRep_Health()
 	PlayHitReactMontage();
 }
 
-
 void ABlasterCharacter::AimOffset(float DeltaTime)
 {
 	if (Combat && Combat->EquippedWeapon == nullptr) return;
@@ -441,15 +457,12 @@ void ABlasterCharacter::ReceiveDamage(AActor* DamageActor, float Damage, const U
 	
 }
 
-
 void ABlasterCharacter::MoveCamera(const FInputActionValue& Value)
 {
 	const FVector2D MovementVector = Value.Get<FVector2D>();
 	AddControllerYawInput(MovementVector.X);
 	AddControllerPitchInput(MovementVector.Y);
 }
-
-
 
 void ABlasterCharacter::OnCameraCollisionBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp,

@@ -7,7 +7,8 @@
 #include "InputActionValue.h"
 #include "Blaster/BlasterTypes/TurningInPlace.h"
 #include "Interfaces/InteractWithCrosshairsInterface.h"
-
+#include "TimerManager.h"
+#include "GameFramework/PlayerController.h"
 
 #include "BlasterCharacter.generated.h"
 
@@ -25,11 +26,12 @@ class BLASTER_API ABlasterCharacter : public ACharacter, public IInteractWithCro
 public:
 	// Sets default values for this character's properties
 	ABlasterCharacter();
-	
+	UFUNCTION()
+	void UpdateHUDHealth();
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
+	
 	
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components")
@@ -79,8 +81,7 @@ protected:
 
 	UFUNCTION()
 	void ReceiveDamage(AActor* DamageActor, float Damage, const UDamageType* DamageType, class AController* InstigatorController, AActor* DamageCauser);
-	UFUNCTION()
-	void UpdateHUDHealth();
+	
 	/*
 	Montage
 	*/
@@ -102,8 +103,19 @@ protected:
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-	UFUNCTION(NetMulticast, Reliable)
+
+	void ElimTimerFinished();
+
+	FTimerHandle ElimTimer;
+
+	UPROPERTY(EditDefaultsOnly)
+	float ElimDilay = 2.f;
+
 	void Elim();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_Elim();
+
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const;
