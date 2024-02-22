@@ -8,6 +8,7 @@
 #include "Blaster/BlasterTypes/TurningInPlace.h"
 #include "Interfaces/InteractWithCrosshairsInterface.h"
 #include "TimerManager.h"
+#include "Components/TimelineComponent.h"
 #include "GameFramework/PlayerController.h"
 
 #include "BlasterCharacter.generated.h"
@@ -99,6 +100,35 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Camera)
 	float CameraThreshold = 200.f;
 	
+	/**
+	* Dissolve Effect
+	**/
+	UPROPERTY(VisibleAnywhere)
+	UTimelineComponent* DissolveTimeline;
+
+	FOnTimelineFloat DissloveTrack;
+
+	UFUNCTION()
+	void UpdateDessolveMaterial(float DissolveValue);
+
+	void StartDissolve();
+
+	UPROPERTY(EditAnywhere)
+	UCurveFloat* DissolveCurve;
+
+	//Dynamic instance that we can change at runtime
+	UPROPERTY(VisibleAnywhere, Category = Elim)
+	UMaterialInstanceDynamic* DynamicDissloveMaterialInstance;
+	// Material instance set on the BP used with the dynamic metarial instance  
+	UPROPERTY(EditAnywhere, Category = Elim)
+	UMaterialInstance* DissolveMaterialInstance;
+
+	//Dynamic instance that we can change at runtime
+	UPROPERTY(VisibleAnywhere, Category = Elim)
+	UMaterialInstanceDynamic* DynamicDissloveMaterialInstance2;
+	// Material instance set on the BP used with the dynamic metarial instance  
+	UPROPERTY(EditAnywhere, Category = Elim)
+	UMaterialInstance* DissolveMaterialInstance2;
 
 public:	
 	// Called every frame

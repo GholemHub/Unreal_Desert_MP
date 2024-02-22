@@ -26,7 +26,7 @@
 
 #include "GameFramework/CharacterMovementComponent.h"
 
-
+//UE_LOG(LogTemp, Warning, TEXT("123"))
 // Sets default values
 ABlasterCharacter::ABlasterCharacter()
 {
@@ -55,6 +55,8 @@ ABlasterCharacter::ABlasterCharacter()
 	Combat->SetIsReplicated(true);
 	
 	TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+
+	DissolveTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DissolveTimelineComponent"));
 }
 
 void ABlasterCharacter::BeginPlay()
@@ -194,6 +196,55 @@ void ABlasterCharacter::Multicast_Elim_Implementation()
 {
 	bElimmed = true;
 	PlayDeathMontage();
+
+	//Starting Death effect
+	if (DissolveMaterialInstance)
+	{
+		DynamicDissloveMaterialInstance = UMaterialInstanceDynamic::Create(DissolveMaterialInstance, this);
+		GetMesh()->SetMaterial(0, DynamicDissloveMaterialInstance);
+		DynamicDissloveMaterialInstance->SetScalarParameterValue(TEXT("Disolve"), 0.55f);
+		DynamicDissloveMaterialInstance->SetScalarParameterValue(TEXT("Glow"), 200.f);
+	}
+	if (DissolveMaterialInstance2)
+	{
+		DynamicDissloveMaterialInstance2 = UMaterialInstanceDynamic::Create(DissolveMaterialInstance2, this);
+		GetMesh()->SetMaterial(1, DynamicDissloveMaterialInstance2);
+		DynamicDissloveMaterialInstance2->SetScalarParameterValue(TEXT("Disolve"), 0.55f);
+		DynamicDissloveMaterialInstance2->SetScalarParameterValue(TEXT("Glow"), 200.f);
+	}
+
+	StartDissolve();
+
+	//Desable character component
+	GetCharacterMovement()->DisableMovement();
+	GetCharacterMovement()->StopMovementImmediately();
+	if (BlasterPlayerController)
+	{
+		DisableInput(BlasterPlayerController);
+	}
+	//Disable collision
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+void ABlasterCharacter::UpdateDessolveMaterial(float DissolveValue)
+{
+	if (DynamicDissloveMaterialInstance && DynamicDissloveMaterialInstance2)
+	{
+		DynamicDissloveMaterialInstance->SetScalarParameterValue(TEXT("Dissolve"), DissolveValue);
+		DynamicDissloveMaterialInstance2->SetScalarParameterValue(TEXT("Dissolve"), DissolveValue);
+	}
+}
+
+void ABlasterCharacter::StartDissolve()
+{
+	DissloveTrack.BindDynamic(this, &ABlasterCharacter::UpdateDessolveMaterial);
+
+	if (DissolveCurve && DissolveTimeline)
+	{
+		DissolveTimeline->AddInterpFloat(DissolveCurve, DissloveTrack);
+		DissolveTimeline->Play();
+	}
 }
 
 void ABlasterCharacter::Tick(float DeltaTime)
@@ -214,6 +265,10 @@ void ABlasterCharacter::ElimTimerFinished()
 
 void ABlasterCharacter::Elim()
 {
+	if (Combat && Combat->EquippedWeapon)
+	{
+		Combat->EquippedWeapon->Dropped();
+	}
 	Multicast_Elim();
 	GetWorldTimerManager().SetTimer(
 		ElimTimer,

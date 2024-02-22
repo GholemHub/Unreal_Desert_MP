@@ -24,7 +24,8 @@ protected:
 	void SetAiming(bool bIsAiming);
 	UFUNCTION(Server, Reliable)
 	void ServerSetAiming(bool bIsAiming);
-
+	UFUNCTION()
+	void OnRep_EquippedWeapon();
 	void FireButtonPressed(bool bPressed);
 	void Fire();
 	UFUNCTION(Server, Reliable)
@@ -72,7 +73,7 @@ private:
 	class ABlasterPlayerController* Controller;
 	class ABlasterHUD* HUD;
 
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = OnRep_EquippedWeapon)
 	class AWeapon* EquippedWeapon;
 	UPROPERTY(Replicated)
 	bool bAiming;

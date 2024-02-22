@@ -28,6 +28,8 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const;
 	virtual void Tick(float DeltaTime) override;
 	virtual void Fire(const FVector& HitTarget);
+	void Dropped();
+
 protected:
 	virtual void BeginPlay() override;
 	UFUNCTION()
@@ -64,6 +66,8 @@ private:
 	float ZoomInterpSpeed = 20.f;
 
 public:
+
+
 	void SetWeaponState(EWeaponState State);
 	FORCEINLINE USphereComponent* GetAreaSphere() const { return AreaSphere; }
 	FORCEINLINE USkeletalMeshComponent* GetWeaoponMesh() const { return WeaponMesh; }
