@@ -18,4 +18,8 @@ public:
 	class UProgressBar* HealthProgressBar;
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* HealthTextBlock;
+
+	//AMMO
+	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* WeaponAmmoAmount;
 };

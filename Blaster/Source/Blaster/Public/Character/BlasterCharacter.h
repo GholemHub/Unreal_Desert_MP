@@ -29,12 +29,11 @@ public:
 	ABlasterCharacter();
 	UFUNCTION()
 	void UpdateHUDHealth();
+	virtual void Destroyed() override;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	
-	
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components")
 		USpringArmComponent* SpringArmComponent;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components")
@@ -129,6 +128,21 @@ protected:
 	// Material instance set on the BP used with the dynamic metarial instance  
 	UPROPERTY(EditAnywhere, Category = Elim)
 	UMaterialInstance* DissolveMaterialInstance2;
+
+	/**
+	* ElimBot
+	*/
+	UPROPERTY(EditAnywhere)
+	UParticleSystem* ElimBotEffect;
+
+	UPROPERTY(VisibleAnywhere)
+	UParticleSystemComponent* ElimBotComponent;
+
+	UPROPERTY(EditAnywhere)
+	class USoundCue* ElimBotSound;
+
+
+	
 
 public:	
 	// Called every frame

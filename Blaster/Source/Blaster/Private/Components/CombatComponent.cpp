@@ -31,7 +31,10 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 {
 	if (Character == nullptr || WeaponToEquip == nullptr) return;
-
+	if (EquippedWeapon)
+	{
+		EquippedWeapon->Dropped();
+	}
 	EquippedWeapon = WeaponToEquip;
 	EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
 	const USkeletalMeshSocket* HandSocket = Character->GetMesh()->GetSocketByName(FName("RightHandSocket"));
@@ -40,6 +43,7 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 		HandSocket->AttachActor(EquippedWeapon, Character->GetMesh());
 	}
 	EquippedWeapon->SetOwner(Character);
+	EquippedWeapon->SetHUDAmmo();
 }
 
 
@@ -110,9 +114,6 @@ void UCombatComponent::TraceUnderCrosshairs(FHitResult& TraceHitResult)
 			Start += CrosshairWorldDirection * (DistanceToCharacter + 100.f);
 		}
 		FVector End = Start + CrosshairWorldDirection * 80000.f;
-		
-		//FCollisionQueryParams CollisionParams;
-		//CollisionParams.AddIgnoredActor(GetOwner());
 		
 		GetWorld()->LineTraceSingleByChannel(
 			TraceHitResult,

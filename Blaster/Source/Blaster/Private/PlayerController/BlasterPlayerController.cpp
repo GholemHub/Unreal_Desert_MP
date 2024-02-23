@@ -13,14 +13,6 @@ void ABlasterPlayerController::SetHUDHealth(float Health, float MaxHealth)
 	//BlasterHUD->AddCharacterOverlay();
 	BlasterHUD = BlasterHUD == nullptr ? Cast<ABlasterHUD>(GetHUD()) : BlasterHUD;
 
-	if (BlasterHUD)
-	{
-		UE_LOG(LogTemp, Error, TEXT("BlasterHUD is Good"))
-	}
-	else {
-		UE_LOG(LogTemp, Error, TEXT("BlasterHUD is Not"))
-	}
-
 	bool bHUDValid = BlasterHUD &&
 		BlasterHUD->CharacterOverlay &&
 		BlasterHUD->CharacterOverlay->HealthProgressBar &&
@@ -37,6 +29,20 @@ void ABlasterPlayerController::SetHUDHealth(float Health, float MaxHealth)
 		bInitializeHealth = true;
 		HUDHealth = Health;
 		HUDMaxHealth = MaxHealth;
+	}
+}
+
+void ABlasterPlayerController::SetHUDWeaponAmmo(int32 Ammo)
+{
+	BlasterHUD = BlasterHUD == nullptr ? Cast<ABlasterHUD>(GetHUD()) : BlasterHUD;
+
+	bool bHUDValid = BlasterHUD &&
+		BlasterHUD->CharacterOverlay &&
+		BlasterHUD->CharacterOverlay->WeaponAmmoAmount;
+	if (bHUDValid)
+	{
+		FString AmmoText = FString::Printf(TEXT("%d"), Ammo);
+		BlasterHUD->CharacterOverlay->WeaponAmmoAmount->SetText(FText::FromString(AmmoText));
 	}
 }
 

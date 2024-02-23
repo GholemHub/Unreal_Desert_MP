@@ -10,6 +10,7 @@
 #include "Weapon/Casing.h"
 #include "Net/UnrealNetwork.h"
 #include "Engine/SkeletalMeshSocket.h"
+#include "PlayerController/BlasterPlayerController.h"
 
 
 // Sets default values
@@ -49,6 +50,7 @@ void AWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeP
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AWeapon, WeaponState);
+	DOREPLIFETIME(AWeapon, Ammo);
 }
 
 
@@ -100,6 +102,36 @@ void AWeapon::Fire(const FVector& HitTarget)
 			}
 		}
 	}
+
+	SpendRound();
+}
+
+void AWeapon::OnRep_Owner()
+{
+	Super::OnRep_Owner();
+	if (Owner == nullptr)
+	{
+		BlasterOwnerCharacter = nullptr;
+		BlasterOwnerController = nullptr;
+	}
+	else {
+		SetHUDAmmo();
+	}
+	
+
+}
+
+void AWeapon::SetHUDAmmo()
+{
+	BlasterOwnerCharacter = BlasterOwnerCharacter == nullptr ? Cast<ABlasterCharacter>(GetOwner()) : BlasterOwnerCharacter;
+	if (BlasterOwnerCharacter)
+	{
+		BlasterOwnerController = BlasterOwnerController == nullptr ? Cast<ABlasterPlayerController>(BlasterOwnerCharacter->Controller) : BlasterOwnerController;
+		if (BlasterOwnerController)
+		{
+			BlasterOwnerController->SetHUDWeaponAmmo(Ammo);
+		}
+	}
 }
 
 void AWeapon::Dropped()
@@ -108,6 +140,8 @@ void AWeapon::Dropped()
 	FDetachmentTransformRules DetatchRules(EDetachmentRule::KeepWorld, true);
 	WeaponMesh->DetachFromComponent(DetatchRules);
 	SetOwner(nullptr);
+	BlasterOwnerCharacter = nullptr;
+	BlasterOwnerController = nullptr;
 }
 
 
@@ -127,6 +161,19 @@ void AWeapon::OnRep_WeaponState()
 		WeaponMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		break;
 	}
+}
+
+
+void AWeapon::SpendRound()
+{
+	Ammo--;
+	SetHUDAmmo();
+}
+
+void AWeapon::OnRep_Ammo()
+{
+
+	SetHUDAmmo();
 }
 
 void AWeapon::SetWeaponState(EWeaponState State)
@@ -149,8 +196,6 @@ void AWeapon::SetWeaponState(EWeaponState State)
 		WeaponMesh->SetSimulatePhysics(true);
 		WeaponMesh->SetEnableGravity(true);
 		WeaponMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-
-
 
 		break;
 	}

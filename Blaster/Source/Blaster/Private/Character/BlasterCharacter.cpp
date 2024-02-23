@@ -23,6 +23,9 @@
 #include "GameMode/BlasterGameMode.h"
 #include "TimerManager.h"
 #include "GameFramework/PlayerController.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
+#include "Particles/ParticleSystemComponent.h"
 
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -93,6 +96,16 @@ void ABlasterCharacter::UpdateHUDHealth()
 	{
 		UE_LOG(LogTemp, Error, TEXT("HUD Apdated"))
 		BlasterPlayerController->SetHUDHealth(Health, MaxHealth);
+	}
+}
+
+void ABlasterCharacter::Destroyed()
+{
+	Super::Destroyed();
+
+	if (ElimBotComponent)
+	{
+		ElimBotComponent->DestroyComponent();
 	}
 }
 
@@ -194,6 +207,10 @@ void ABlasterCharacter::HideCameraIfCharacterClose()
 
 void ABlasterCharacter::Multicast_Elim_Implementation()
 {
+	if (BlasterPlayerController)
+	{
+		BlasterPlayerController->SetHUDWeaponAmmo(0);
+	}
 	bElimmed = true;
 	PlayDeathMontage();
 
@@ -225,6 +242,22 @@ void ABlasterCharacter::Multicast_Elim_Implementation()
 	//Disable collision
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	// SpawnElimBot
+	if (ElimBotEffect)
+	{
+		FVector ElimBotSpawnPoint(GetActorLocation().X, GetActorLocation().Y, GetActorLocation().Z + 200.f);
+		ElimBotComponent = UGameplayStatics::SpawnEmitterAtLocation(
+			GetWorld(),
+			ElimBotEffect,
+			ElimBotSpawnPoint,
+			GetActorRotation()
+		);
+	}
+	if (ElimBotSound)
+	{
+		UGameplayStatics::SpawnSoundAtLocation(this, ElimBotSound, GetActorLocation());
+	}
 }
 
 void ABlasterCharacter::UpdateDessolveMaterial(float DissolveValue)
