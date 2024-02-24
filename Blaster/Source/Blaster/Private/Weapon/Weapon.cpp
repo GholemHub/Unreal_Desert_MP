@@ -166,6 +166,7 @@ void AWeapon::OnRep_WeaponState()
 
 void AWeapon::SpendRound()
 {
+	//Ammo = FMath::Clamp(Ammo - 1, 0, MagCopacity);
 	Ammo--;
 	SetHUDAmmo();
 }
@@ -199,6 +200,11 @@ void AWeapon::SetWeaponState(EWeaponState State)
 
 		break;
 	}
+}
+
+bool AWeapon::IsEmpty()
+{
+	return Ammo <= 0;
 }
 
 void AWeapon::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)

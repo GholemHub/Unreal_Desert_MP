@@ -4,7 +4,13 @@
 #include "Components/ActorComponent.h"
 #include "GameFramework/Character.h"
 #include "HUD/BlasterHUD.h"
+#include "Weapon/WeaponTypes.h"
+#include "Blaster/BlasterTypes/CombatState.h"
+
 #include "CombatComponent.generated.h"
+
+
+ 
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class BLASTER_API UCombatComponent : public UActorComponent
@@ -17,6 +23,9 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const;
 	void EquipWeapon(class AWeapon* WeaponToEquip);
+	void Reload();
+	UFUNCTION(BlueprintCallable)
+	void FinishReloading();
 
 protected:
 	virtual void BeginPlay() override;
@@ -36,7 +45,6 @@ protected:
 	void TraceUnderCrosshairs(FHitResult& TraceHitResult);
 
 	void SetHUDCrosshairs(float DeltaTime);
-
 
 	float CrosshairVelocityFactor;
 	float CrosshairInAirFactor;
@@ -68,6 +76,30 @@ protected:
 	void StartFireTimer();
 	void FireTimerFinished();
 
+	bool CanFire();
+
+	//Carried ammo
+	UPROPERTY(EditAnywhere, ReplicatedUsing = OnRep_CarriedAmmo, Category = "Weapon Propertie")
+	int32 CarriedAmmo;
+
+	UFUNCTION()
+	void OnRep_CarriedAmmo();
+
+	TMap<EWeaponType, int32> CarriedAmmoMap;
+	UPROPERTY(EditAnywhere)
+	int32 StartingARAmmo = 3;
+
+	void InitializeCarriedAmmo();
+
+	UFUNCTION(Server, Reliable)
+	void ServerReload();
+
+	void HandlReload();
+
+	UPROPERTY(ReplicatedUsing = OnRep_CombatState)
+	ECombatState CombatState;
+	UFUNCTION()
+	void OnRep_CombatState();
 private:
 	class ABlasterCharacter* Character;
 	class ABlasterPlayerController* Controller;
@@ -77,5 +109,6 @@ private:
 	class AWeapon* EquippedWeapon;
 	UPROPERTY(Replicated)
 	bool bAiming;
-	bool bFireBtnPressed;
+	bool bFireBtnPressed; 
+	
 };

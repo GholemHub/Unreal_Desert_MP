@@ -10,6 +10,7 @@
 #include "TimerManager.h"
 #include "Components/TimelineComponent.h"
 #include "GameFramework/PlayerController.h"
+#include "Blaster/BlasterTypes/CombatState.h"
 
 #include "BlasterCharacter.generated.h"
 
@@ -66,6 +67,10 @@ protected:
 		UInputAction* FirePressedInputAction;
 	UPROPERTY(EditAnywhere, Category = Input)
 		UInputAction* FireReleasedInputAction;
+	UPROPERTY(EditAnywhere, Category = Input)
+		UInputAction* ReloadReleasedInputAction;
+	UPROPERTY(EditAnywhere, Category = Input)
+		UInputAction* ReloadPressedInputAction;
 		
 
 	//Function to call onMove
@@ -78,6 +83,8 @@ protected:
 	void FireBtnPressed();
 	void FireBtnReleased();
 	void AimOffset(float DeltaTime);
+	void ReloadPressed();
+	void ReloadReliesed();
 
 	UFUNCTION()
 	void ReceiveDamage(AActor* DamageActor, float Damage, const UDamageType* DamageType, class AController* InstigatorController, AActor* DamageCauser);
@@ -93,6 +100,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = Combat)
 	UAnimMontage* DeathMontage;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	UAnimMontage* ReloadMontage;
 
 	void HideCameraIfCharacterClose();
 
@@ -121,7 +131,6 @@ protected:
 	// Material instance set on the BP used with the dynamic metarial instance  
 	UPROPERTY(EditAnywhere, Category = Elim)
 	UMaterialInstance* DissolveMaterialInstance;
-
 	//Dynamic instance that we can change at runtime
 	UPROPERTY(VisibleAnywhere, Category = Elim)
 	UMaterialInstanceDynamic* DynamicDissloveMaterialInstance2;
@@ -141,8 +150,6 @@ protected:
 	UPROPERTY(EditAnywhere)
 	class USoundCue* ElimBotSound;
 
-
-	
 
 public:	
 	// Called every frame
@@ -170,15 +177,19 @@ public:
 	bool IsWeaponEquipped();
 	bool IsAiming();
 	void PlayFireMontage(bool bAiming);
+	void PlayReloadMontage();
 	void PlayHitReactMontage();
 	void PlayDeathMontage();
 
+	AWeapon* GetEquippedWeapon();
+
 	FORCEINLINE float GetAO_Yaw() const {return AO_Yaw;}
 	FORCEINLINE float GetAO_Pitch() const {return AO_Pitch;}
-	AWeapon* GetEquippedWeapon();
 	FORCEINLINE ETurningInPlace GetTurningInPlace() const { return TurningInPlace; }
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return CameraComponent; }
 	FORCEINLINE bool IsElimmed() const { return bElimmed; }
+
+	ECombatState GetCombatState() const;
 
 	FVector GetHitTarget() const;
 private:
@@ -190,11 +201,9 @@ private:
 	UFUNCTION()
 		void OnCameraCollisionEndOverlap(
 			UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-	/*UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-		class UWidgetComponent* OverheadWidget;*/
 	UPROPERTY(ReplicatedUsing = OnRep_OverlappingWeapon)
 		class AWeapon* OverlappingWeapon;
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 		class UCombatComponent* Combat;
 
 	UFUNCTION(Server, Reliable)

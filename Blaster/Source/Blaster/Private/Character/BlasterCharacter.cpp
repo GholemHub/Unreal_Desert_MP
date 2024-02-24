@@ -26,6 +26,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Weapon/WeaponTypes.h"
 
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -124,6 +125,8 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		EnhancedInputComponent->BindAction(FireReleasedInputAction, ETriggerEvent::Triggered, this, &ABlasterCharacter::FireBtnReleased);
 		EnhancedInputComponent->BindAction(AimInputAction, ETriggerEvent::Triggered, this, &ABlasterCharacter::AimBtnPressed);
 		EnhancedInputComponent->BindAction(AimInputAction2, ETriggerEvent::Triggered, this, &ABlasterCharacter::AimBtnReleased);
+		EnhancedInputComponent->BindAction(ReloadReleasedInputAction, ETriggerEvent::Triggered, this, &ABlasterCharacter::ReloadReliesed);
+		EnhancedInputComponent->BindAction(ReloadPressedInputAction, ETriggerEvent::Triggered, this, &ABlasterCharacter::ReloadPressed);
 	}
 }
 void ABlasterCharacter::ServerEquipButtonPressed_Implementation()
@@ -378,6 +381,24 @@ void ABlasterCharacter::PlayFireMontage(bool bAiming)
 	}
 }
 
+void ABlasterCharacter::PlayReloadMontage()
+{
+	if (Combat == nullptr || Combat->EquippedWeapon == nullptr) return;
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && ReloadMontage)
+	{
+		AnimInstance->Montage_Play(ReloadMontage);
+		FName SectioName;
+		switch (Combat->EquippedWeapon->GetWeaponType())
+		{
+		case EWeaponType::EWT_AssaultRifle:
+			SectioName = FName("Rifle");
+			break;
+		}
+		AnimInstance->Montage_JumpToSection(SectioName);
+	}
+}
+
 void ABlasterCharacter::PlayDeathMontage()
 {
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
@@ -405,6 +426,13 @@ AWeapon* ABlasterCharacter::GetEquippedWeapon()
 	if (Combat == nullptr) return nullptr;
 
 	return Combat->EquippedWeapon;
+}
+
+ECombatState ABlasterCharacter::GetCombatState() const
+{
+	if (Combat == nullptr) return ECombatState::ECS_MAX;
+
+	return Combat->CombatState;
 }
 
 FVector ABlasterCharacter::GetHitTarget() const
@@ -523,6 +551,21 @@ void ABlasterCharacter::AimOffset(float DeltaTime)
 		FVector2D OutRange(-90.f, 0.f);
 		AO_Pitch = FMath::GetMappedRangeValueClamped(InRange, OutRange, AO_Pitch);
 	}
+}
+
+void ABlasterCharacter::ReloadPressed()
+{
+	if (Combat)
+	{
+		Combat->Reload();
+	}
+	UE_LOG(LogTemp, Error, TEXT("The reload1"))
+}
+
+void ABlasterCharacter::ReloadReliesed()
+{
+
+	UE_LOG(LogTemp, Error, TEXT("The reload2"))
 }
 
 void ABlasterCharacter::ReceiveDamage(AActor* DamageActor, float Damage, const UDamageType* DamageType, AController* InstigatorController, AActor* DamageCauser)

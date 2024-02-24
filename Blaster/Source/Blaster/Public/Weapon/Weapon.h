@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "WeaponTypes.h"
 #include "Weapon.generated.h"
 
 
@@ -30,6 +31,7 @@ public:
 	virtual void Fire(const FVector& HitTarget);
 	virtual void OnRep_Owner() override;
 	void SetHUDAmmo();
+	void SetHUDCarriedAmmo();
 	void Dropped();
 
 
@@ -68,7 +70,7 @@ private:
 	int32 Ammo;
 	UPROPERTY(EditAnywhere, Category = "Weapon Propertie")
 	int32 MagCopacity;
-
+	
 	UFUNCTION()
 	void OnRep_Ammo();
 
@@ -77,6 +79,9 @@ private:
 	class ABlasterCharacter* BlasterOwnerCharacter;
 	UPROPERTY()
 	class ABlasterPlayerController* BlasterOwnerController;
+
+	UPROPERTY(EditAnywhere)
+	EWeaponType WeaponType;
 
 	//ZOOM
 	UPROPERTY(EditAnywhere)
@@ -93,7 +98,9 @@ public:
 	FORCEINLINE USkeletalMeshComponent* GetWeaoponMesh() const { return WeaponMesh; }
 	FORCEINLINE float GetZoomedFOV() const { return ZoomedFOV; }
 	FORCEINLINE float GetZoomInterpSpeed() const { return ZoomInterpSpeed; }
-	
+	FORCEINLINE EWeaponType GetWeaponType() const { return WeaponType; }
+	bool IsEmpty();
+
 	UPROPERTY(EditAnywhere, Category = Crosshairs)
 	class UTexture2D* CrosshairsCenter;
 	UPROPERTY(EditAnywhere, Category = Crosshairs)
@@ -114,4 +121,6 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = Combat)
 	bool bAutomatic = true;
+
+	
 };

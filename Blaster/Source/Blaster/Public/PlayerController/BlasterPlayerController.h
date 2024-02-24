@@ -16,6 +16,7 @@ class BLASTER_API ABlasterPlayerController : public APlayerController
 public:
 	void SetHUDHealth(float Health, float MaxHealth);
 	void SetHUDWeaponAmmo(int32 Ammo);
+	void SetHUDWeaponCarriedAmmo(int32 Carried);
 protected:
 	virtual void BeginPlay() override;
 	virtual void OnPossess(APawn* InPawn) override;
