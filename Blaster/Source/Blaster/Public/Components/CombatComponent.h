@@ -96,6 +96,8 @@ protected:
 
 	void HandlReload();
 
+	int32 AmountToReload();
+
 	UPROPERTY(ReplicatedUsing = OnRep_CombatState)
 	ECombatState CombatState;
 	UFUNCTION()
@@ -110,5 +112,7 @@ private:
 	UPROPERTY(Replicated)
 	bool bAiming;
 	bool bFireBtnPressed; 
+
+	void UpdateAmmoValues();
 	
 };
