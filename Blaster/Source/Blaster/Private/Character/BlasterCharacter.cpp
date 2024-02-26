@@ -92,12 +92,13 @@ void ABlasterCharacter::BeginPlay()
 void ABlasterCharacter::UpdateHUDHealth()
 {
 	BlasterPlayerController = BlasterPlayerController == nullptr ? Cast<ABlasterPlayerController>(Controller) : BlasterPlayerController;
+
 	//UE_LOG(LogTemp, Error, TEXT("LOG1 is BlasterPlayerController"))
 	if (BlasterPlayerController)
 	{
 		UE_LOG(LogTemp, Error, TEXT("HUD Apdated"))
-		BlasterPlayerController->SetHUDHealth(Health, MaxHealth);
-	}
+			BlasterPlayerController->SetHUDHealth(Health, MaxHealth);
+	}	
 }
 
 void ABlasterCharacter::Destroyed()
