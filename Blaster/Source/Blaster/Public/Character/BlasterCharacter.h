@@ -181,6 +181,7 @@ public:
 	void PlayHitReactMontage();
 	void PlayDeathMontage();
 
+
 	AWeapon* GetEquippedWeapon();
 
 	FORCEINLINE float GetAO_Yaw() const {return AO_Yaw;}
@@ -188,6 +189,7 @@ public:
 	FORCEINLINE ETurningInPlace GetTurningInPlace() const { return TurningInPlace; }
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return CameraComponent; }
 	FORCEINLINE bool IsElimmed() const { return bElimmed; }
+	FORCEINLINE bool IsAlive() const { return Health >= 0; }
 
 	ECombatState GetCombatState() const;
 
@@ -205,6 +207,8 @@ private:
 		class AWeapon* OverlappingWeapon;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 		class UCombatComponent* Combat;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		class UHealthComponent* HealthComponent;
 
 	UFUNCTION(Server, Reliable)
 		void ServerEquipButtonPressed();

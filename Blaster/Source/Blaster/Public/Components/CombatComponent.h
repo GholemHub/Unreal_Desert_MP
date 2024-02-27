@@ -7,10 +7,7 @@
 #include "Weapon/WeaponTypes.h"
 #include "Blaster/BlasterTypes/CombatState.h"
 
-#include "CombatComponent.generated.h"
-
-
- 
+#include "CombatComponent.generated.h" 
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class BLASTER_API UCombatComponent : public UActorComponent

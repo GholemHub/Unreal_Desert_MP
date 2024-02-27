@@ -9,6 +9,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Components/CombatComponent.h"
+#include "Components/HealthComponent.h"
 #include "GameFramework/Character.h"
 #include "Components/InputComponent.h"
 #include "EnhancedInputComponent.h"
@@ -57,6 +58,9 @@ ABlasterCharacter::ABlasterCharacter()
 
 	Combat = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
 	Combat->SetIsReplicated(true);
+
+	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
+	HealthComponent->SetIsReplicated(true);
 	
 	TurningInPlace = ETurningInPlace::ETIP_NotTurning;
 
@@ -96,7 +100,7 @@ void ABlasterCharacter::UpdateHUDHealth()
 	//UE_LOG(LogTemp, Error, TEXT("LOG1 is BlasterPlayerController"))
 	if (BlasterPlayerController)
 	{
-		UE_LOG(LogTemp, Error, TEXT("HUD Apdated"))
+		//UE_LOG(LogTemp, Error, TEXT("HUD Apdated"))
 			BlasterPlayerController->SetHUDHealth(Health, MaxHealth);
 	}	
 }

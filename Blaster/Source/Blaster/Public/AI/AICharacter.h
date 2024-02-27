@@ -9,9 +9,16 @@
 /**
  * 
  */
+
+
 UCLASS()
 class BLASTER_API AAICharacter : public ABlasterCharacter
 {
 	GENERATED_BODY()
+public:
 	
+	AAICharacter(const FObjectInitializer& ObjInit);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = AI)
+	class UBehaviorTree* BechaviorTreeAsset;
 };

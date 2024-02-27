@@ -3,3 +3,7 @@
 
 #include "AI/AICharacter.h"
 
+AAICharacter::AAICharacter(const FObjectInitializer& ObjInit)
+{
+
+}
