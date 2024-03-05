@@ -82,7 +82,7 @@ protected:
 	void AimBtnReleased();
 	void FireBtnPressed();
 	void FireBtnReleased();
-	void AimOffset(float DeltaTime);
+	virtual void AimOffset(float DeltaTime);
 	void ReloadPressed();
 	void ReloadReliesed();
 
@@ -152,6 +152,12 @@ protected:
 
 
 public:	
+
+	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
+	TSubclassOf<AWeapon> AProjectileClass;
+
+
+
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
@@ -174,15 +180,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Movement)
 	float GetMovementDirection() const;
 	void SetOverlappingWeapon(AWeapon* Weapon);
-	bool IsWeaponEquipped();
+	virtual bool IsWeaponEquipped();
 	bool IsAiming();
 	void PlayFireMontage(bool bAiming);
-	void PlayReloadMontage();
+	virtual void PlayReloadMontage();
 	void PlayHitReactMontage();
 	void PlayDeathMontage();
 
 
-	AWeapon* GetEquippedWeapon();
+	virtual AWeapon* GetEquippedWeapon();
 
 	FORCEINLINE float GetAO_Yaw() const {return AO_Yaw;}
 	FORCEINLINE float GetAO_Pitch() const {return AO_Pitch;}
@@ -193,7 +199,9 @@ public:
 
 	ECombatState GetCombatState() const;
 
-	FVector GetHitTarget() const;
+	virtual FVector GetHitTarget() const;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class UCombatComponent* Combat;
 private:
 
 	void CheckKameraOverlap();
@@ -205,8 +213,7 @@ private:
 			UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 	UPROPERTY(ReplicatedUsing = OnRep_OverlappingWeapon)
 		class AWeapon* OverlappingWeapon;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-		class UCombatComponent* Combat;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 		class UHealthComponent* HealthComponent;
 

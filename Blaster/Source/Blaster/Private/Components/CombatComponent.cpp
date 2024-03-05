@@ -14,6 +14,10 @@
 #include "GameFramework/Character.h"
 #include "TimerManager.h"
 #include "Sound/SoundCue.h"
+#include "AI/BlasterAIController.h"
+#include "AI/AICharacter.h"
+#include "Weapon/ProjectileWeapon.h"
+
 
 UCombatComponent::UCombatComponent()
 {
@@ -32,6 +36,7 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 
 void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 {
+
 	if (Character == nullptr || WeaponToEquip == nullptr) return;
 	if (EquippedWeapon)
 	{
@@ -68,6 +73,50 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 	}
 }
 
+void UCombatComponent::EquipWeaponAI()
+{
+	auto Owner = GetOwner();
+	if (Owner && Owner->IsA<AAICharacter>())
+	{
+		auto AICharacterLoc = Cast<AAICharacter>(Owner);
+		AICharacter = AICharacterLoc;
+		if (AICharacter && AICharacter->Weapon)
+		{
+			auto w = AICharacter->Weapon;
+			FRotator myRot(0, 0, 0);
+			FVector myLoc(0, 0, 0);
+			AWeapon* WeaponToEquip = GetWorld()->SpawnActor<AWeapon>(w, myLoc, myRot);
+			
+			if (EquippedWeapon)
+			{
+				EquippedWeapon->Dropped();
+			}
+
+			EquippedWeapon = WeaponToEquip;
+			EquippedWeaponAI = WeaponToEquip;
+			EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
+			EquippedWeaponAI -> SetWeaponState(EWeaponState::EWS_Equipped);
+			const USkeletalMeshSocket* HandSocket = AICharacter->GetMesh()->GetSocketByName(FName("RightHandSocket"));
+			if (HandSocket)
+			{
+				HandSocket->AttachActor(EquippedWeapon, AICharacter->GetMesh());
+			}
+			EquippedWeapon->SetOwner(AICharacter);
+			EquippedWeaponAI->SetOwner(AICharacter);
+
+			if (CarriedAmmoMap.Contains(EquippedWeapon->GetWeaponType()))
+			{
+				CarriedAmmo = CarriedAmmoMap[EquippedWeapon->GetWeaponType()];
+			}
+
+			if (EquippedWeaponAI != nullptr)
+			{
+				//UE_LOG(LogTemp, Error, TEXT("EquippedWeapon != nullptr"))
+			}
+		}
+	}
+}
+
 void UCombatComponent::Reload()
 {
 	if (CarriedAmmo > 0 && CombatState != ECombatState::ECS_Reloading)
@@ -92,7 +141,13 @@ void UCombatComponent::FinishReloading()
 
 void UCombatComponent::HandlReload()
 {
-	Character->PlayReloadMontage();
+	if (Character) {
+		Character->PlayReloadMontage();
+	}
+	if (AICharacter)
+	{
+		AICharacter->PlayReloadMontage();
+	}
 }
 
 int32 UCombatComponent::AmountToReload()
@@ -132,7 +187,6 @@ void UCombatComponent::ServerReload_Implementation()
 	HandlReload();
 }
 
-
 void UCombatComponent::OnRep_EquippedWeapon()
 {
 	if (EquippedWeapon && Character)
@@ -145,7 +199,7 @@ void UCombatComponent::OnRep_EquippedWeapon()
 		}
 		Character->GetCharacterMovement()->bOrientRotationToMovement = false;
 		Character->bUseControllerRotationYaw = true;
-	}
+	}	
 }
 
 void UCombatComponent::FireButtonPressed(bool bPressed)
@@ -159,6 +213,7 @@ void UCombatComponent::FireButtonPressed(bool bPressed)
 
 void UCombatComponent::Fire()
 {
+	UE_LOG(LogTemp, Error, TEXT("Fire::Fire %i"), CanFire())
 	
 	if (CanFire())
 	{	
@@ -166,8 +221,8 @@ void UCombatComponent::Fire()
 		ServerFire(HitTarget);
 		if (EquippedWeapon)
 		{
-			
-			CrosshaurShootingFactor = .7f;
+			UE_LOG(LogTemp, Error, TEXT("Fire::"))
+			//CrosshaurShootingFactor = .7f;
 		}
 		StartFireTimer();
 	}
@@ -222,6 +277,37 @@ void UCombatComponent::TraceUnderCrosshairs(FHitResult& TraceHitResult)
 			HUDPackage.CrosshairsColor = FLinearColor::White;
 		}
 	}
+}
+
+void UCombatComponent::TraceUnderCrosshairsAI(FHitResult& TraceHitResult)
+{
+	FVector ActorLocation = AICharacter->GetActorLocation();
+	FVector ActorForwardVector = AICharacter->GetActorForwardVector();
+	ActorLocation += FVector(100,100,0); // TODO This is KOSTYL'
+	float LineLength = 3000.0f;
+
+	// Calculate the end point of the line
+	FVector LineEndPoint = ActorLocation + ActorForwardVector * LineLength;
+
+	// Draw a debug line from the actor's location to the calculated end point (the direction the actor is facing)
+	//DrawDebugLine(GetWorld(), ActorLocation, LineEndPoint, FColor::Green, false, -1, 0, 1.0f);
+
+	FVector2D ViewportSize;
+	if (GEngine && GEngine->GameViewport)
+	{
+		GEngine->GameViewport->GetViewportSize(ViewportSize);
+	}
+
+	// Calculate the end point of the line
+	FVector End = ActorLocation + ActorForwardVector * 80000.f;
+
+	// Perform a line trace from the actor's location to the end point
+	GetWorld()->LineTraceSingleByChannel(
+		TraceHitResult,
+		ActorLocation,
+		End,
+		ECollisionChannel::ECC_Visibility
+	);
 }
 
 void UCombatComponent::SetHUDCrosshairs(float DeltaTime)
@@ -315,13 +401,28 @@ void UCombatComponent::InterpFOV(float Deltatime)
 
 void UCombatComponent::StartFireTimer()
 {
-	if (EquippedWeapon == nullptr || Character == nullptr) return;
-	Character->GetWorldTimerManager().SetTimer(
-		FireTimer,
-		this,
-		&UCombatComponent::FireTimerFinished,
-		EquippedWeapon->FireDelay
-	);
+	if (EquippedWeapon == nullptr) return;
+
+	if (AICharacter != nullptr) {
+		AICharacter->GetWorldTimerManager().SetTimer(
+			FireTimer,
+			this,
+			&UCombatComponent::FireTimerFinished,
+			EquippedWeapon->FireDelay
+		);
+		return;
+	}
+
+	
+	if (Character != nullptr) {
+		Character->GetWorldTimerManager().SetTimer(
+			FireTimer,
+			this,
+			&UCombatComponent::FireTimerFinished,
+			EquippedWeapon->FireDelay
+		);
+		return;
+	}
 }
 
 void UCombatComponent::FireTimerFinished()
@@ -350,7 +451,6 @@ void UCombatComponent::InitializeCarriedAmmo()
 {
 	CarriedAmmoMap.Emplace(EWeaponType::EWT_AssaultRifle, StartingARAmmo);
 }
-
 
 void UCombatComponent::OnRep_CombatState()
 {
@@ -389,7 +489,6 @@ void UCombatComponent::UpdateAmmoValues()
 	EquippedWeapon->AddAmmo(-ReloadAmount);
 }
 
-
 bool UCombatComponent::CanFire()
 {
 	if (EquippedWeapon == nullptr) return false;
@@ -399,10 +498,17 @@ bool UCombatComponent::CanFire()
 void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
 {
 	if (EquippedWeapon == nullptr) return;
+	if (AICharacter && CombatState == ECombatState::ECS_Unoccupied)
+	{
+		AICharacter->PlayFireMontage(bAiming);
+		EquippedWeapon->Fire(TraceHitTarget);
+		return;
+	}
 	if (Character && CombatState == ECombatState::ECS_Unoccupied)
 	{
 		Character->PlayFireMontage(bAiming);
 		EquippedWeapon->Fire(TraceHitTarget);
+		return;
 	}	
 }
 
@@ -416,6 +522,7 @@ void UCombatComponent::BeginPlay()
 	Super::BeginPlay();
 	if (Character)
 	{
+	
 		if (Character->GetFollowCamera())
 		{
 			DefaultFOV = Character->GetFollowCamera()->FieldOfView;
@@ -425,6 +532,9 @@ void UCombatComponent::BeginPlay()
 		{
 			InitializeCarriedAmmo();
 		}
+	}
+	else {
+		EquipWeaponAI();
 	}
 }
 
@@ -441,7 +551,6 @@ void UCombatComponent::ServerSetAiming_Implementation(bool bIsAiming)
 
 void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	//UE_LOG(LogTemp, Warning, TEXT("Tick!"))
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	
 	if (Character && Character->IsLocallyControlled())
@@ -453,5 +562,14 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 		SetHUDCrosshairs(DeltaTime);
 		InterpFOV(DeltaTime);
 	}
-	
+
+	if (AICharacter)
+	{
+		FHitResult HitResult;
+		TraceUnderCrosshairsAI(HitResult);
+		HitTarget = HitResult.ImpactPoint;
+
+		//SetHUDCrosshairs(DeltaTime);
+		//InterpFOV(DeltaTime);
+	}
 }

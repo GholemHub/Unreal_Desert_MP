@@ -71,7 +71,7 @@ void ABlasterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	check(CameraCollisionComponent);
+	//check(CameraCollisionComponent);
 
 	CameraCollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &ABlasterCharacter::OnCameraCollisionBeginOverlap);
 	CameraCollisionComponent->OnComponentEndOverlap.AddDynamic(this, &ABlasterCharacter::OnCameraCollisionEndOverlap);
@@ -329,6 +329,7 @@ void ABlasterCharacter::Move(const FInputActionValue& Value)
 	AddMovementInput(Right, MovementVector.X);
 }
 
+
 void ABlasterCharacter::Equip()
 {
 	if (Combat)
@@ -337,7 +338,7 @@ void ABlasterCharacter::Equip()
 		{
 			Combat->EquipWeapon(OverlappingWeapon);
 		}
-		else {
+		else {	
 			ServerEquipButtonPressed();
 		}	
 	}
@@ -398,7 +399,7 @@ void ABlasterCharacter::PlayReloadMontage()
 		{
 		case EWeaponType::EWT_AssaultRifle:
 			SectioName = FName("Rifle");
-			break;
+			break;  
 		}
 		AnimInstance->Montage_JumpToSection(SectioName);
 	}
@@ -428,6 +429,7 @@ void ABlasterCharacter::PlayHitReactMontage()
 
 AWeapon* ABlasterCharacter::GetEquippedWeapon()
 {
+	
 	if (Combat == nullptr) return nullptr;
 
 	return Combat->EquippedWeapon;

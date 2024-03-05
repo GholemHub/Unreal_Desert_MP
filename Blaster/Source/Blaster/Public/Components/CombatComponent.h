@@ -15,31 +15,50 @@ class BLASTER_API UCombatComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:	
+
 	UCombatComponent();
 	friend class ABlasterCharacter;
+	friend class AAICharacter;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const;
+	void EquipWeaponAI();
 	void EquipWeapon(class AWeapon* WeaponToEquip);
+	//void EquipWeaponAI(class AWeapon* WeaponToEquip);
 	void Reload();
 	UFUNCTION(BlueprintCallable)
 	void FinishReloading();
+	void Fire();
+
+	void FireButtonPressed(bool bPressed);
+	/**
+* Automatic Fire
+*/
+
+	FTimerHandle FireTimer;
+
+	bool bCanFire = true;
+
+	void StartFireTimer();
+	void FireTimerFinished();
+
+	bool CanFire();
 
 protected:
 	virtual void BeginPlay() override;
-
 	void SetAiming(bool bIsAiming);
 	UFUNCTION(Server, Reliable)
 	void ServerSetAiming(bool bIsAiming);
 	UFUNCTION()
 	void OnRep_EquippedWeapon();
-	void FireButtonPressed(bool bPressed);
-	void Fire();
+	
+
 	UFUNCTION(Server, Reliable)
 	void ServerFire(const FVector_NetQuantize& TraceHitTarget);
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastFire(const FVector_NetQuantize& TraceHitTarget);
 
 	void TraceUnderCrosshairs(FHitResult& TraceHitResult);
+	void TraceUnderCrosshairsAI(FHitResult& TraceHitResult);
 
 	void SetHUDCrosshairs(float DeltaTime);
 
@@ -62,18 +81,7 @@ protected:
 
 	void InterpFOV(float Deltatime);
 
-	/**
-	* Automatic Fire
-	*/
 
-	FTimerHandle FireTimer;
-
-	bool bCanFire = true;
-
-	void StartFireTimer();
-	void FireTimerFinished();
-
-	bool CanFire();
 
 	//Carried ammo
 	UPROPERTY(EditAnywhere, ReplicatedUsing = OnRep_CarriedAmmo, Category = "Weapon Propertie")
@@ -96,20 +104,27 @@ protected:
 	int32 AmountToReload();
 
 	UPROPERTY(ReplicatedUsing = OnRep_CombatState)
-	ECombatState CombatState;
+	ECombatState CombatState = ECombatState::ECS_Unoccupied;
 	UFUNCTION()
 	void OnRep_CombatState();
+	
 private:
 	class ABlasterCharacter* Character;
+	class AAICharacter* AICharacter;
+	
 	class ABlasterPlayerController* Controller;
 	class ABlasterHUD* HUD;
 
 	UPROPERTY(ReplicatedUsing = OnRep_EquippedWeapon)
 	class AWeapon* EquippedWeapon;
+	class AWeapon* EquippedWeaponAI;
+
 	UPROPERTY(Replicated)
 	bool bAiming;
 	bool bFireBtnPressed; 
 
 	void UpdateAmmoValues();
+
+	//void SpawnWeapon();
 	
 };

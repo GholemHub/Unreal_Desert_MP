@@ -11,10 +11,11 @@
 #include "Net/UnrealNetwork.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "PlayerController/BlasterPlayerController.h"
+#include "AI/AICharacter.h"
 
 
 // Sets default values
-AWeapon::AWeapon()
+AWeapon::AWeapon() 
 {
 	PrimaryActorTick.bCanEverTick = false;
 
@@ -76,6 +77,7 @@ void AWeapon::BeginPlay()
 void AWeapon::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
 }
 
 void AWeapon::Fire(const FVector& HitTarget)
@@ -215,10 +217,17 @@ bool AWeapon::IsEmpty()
 
 void AWeapon::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	UE_LOG(LogTemp, Error, TEXT("Overlap"))
 	ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(OtherActor);
 	if (BlasterCharacter)
 	{
 		BlasterCharacter->SetOverlappingWeapon(this);
+	}
+
+	AAICharacter* AICharacter = Cast<AAICharacter>(OtherActor);
+	if (AICharacter)
+	{
+		AICharacter->SetOverlappingWeapon(this);
 	}
 }
 

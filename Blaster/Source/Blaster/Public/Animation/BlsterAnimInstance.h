@@ -17,10 +17,12 @@ class BLASTER_API UBlsterAnimInstance : public UAnimInstance
 public:
 	virtual void NativeInitializeAnimation() override; // Like beginplay()
 	virtual void NativeUpdateAnimation(float DeltaTime) override; // Tick
-
+	void NativeUpdateAnimationAI(float DeltaTime);
 private:
 	UPROPERTY(BlueprintReadOnly, Category = Character, meta = (AllowPrivateAccess = "true"))
 	class ABlasterCharacter* BlasterCharacter;
+	UPROPERTY(BlueprintReadOnly, Category = Character, meta = (AllowPrivateAccess = "true"))
+	class AAICharacter* AICharacter;
 	UPROPERTY(BlueprintReadOnly, Category = Character, meta = (AllowPrivateAccess = "true"))
 	float Speed;
 	UPROPERTY(BlueprintReadOnly, Category = Character, meta = (AllowPrivateAccess = "true"))

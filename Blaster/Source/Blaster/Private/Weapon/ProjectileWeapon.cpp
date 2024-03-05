@@ -10,7 +10,7 @@ void AProjectileWeapon::Fire(const FVector& HitTarget)
 	if (!HasAuthority()) return;
 
 	APawn* InstigatorPawn = Cast<APawn>(GetOwner());
-
+	UE_LOG(LogTemp, Error, TEXT("FireThe Weapon"))
 	auto MuzzleFlashSocket = GetWeaoponMesh()->GetSocketByName(FName("MuzzleFlash"));
 	if (MuzzleFlashSocket)
 	{
