@@ -31,7 +31,7 @@ void UFireService::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory
 		if (Combat)
 		{
 			HasAim ? Combat->FireButtonPressed(true) : Combat->FireButtonPressed(false);
-			//UE_LOG(LogTemp, Error, TEXT("Fire"))
+			UE_LOG(LogTemp, Error, TEXT("Fire"))
 		}
 	}
 

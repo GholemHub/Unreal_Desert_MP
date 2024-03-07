@@ -29,6 +29,8 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UCombatComponent, EquippedWeapon);
+	DOREPLIFETIME(UCombatComponent, EquippedWeaponAI);
+
 	DOREPLIFETIME(UCombatComponent, bAiming);
 	DOREPLIFETIME(UCombatComponent, CombatState);
 	DOREPLIFETIME_CONDITION(UCombatComponent, CarriedAmmo, COND_OwnerOnly);
@@ -36,7 +38,6 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 
 void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 {
-
 	if (Character == nullptr || WeaponToEquip == nullptr) return;
 	if (EquippedWeapon)
 	{
@@ -82,37 +83,33 @@ void UCombatComponent::EquipWeaponAI()
 		AICharacter = AICharacterLoc;
 		if (AICharacter && AICharacter->Weapon)
 		{
-			auto w = AICharacter->Weapon;
+			auto Weapon = AICharacter->Weapon;
 			FRotator myRot(0, 0, 0);
 			FVector myLoc(0, 0, 0);
-			AWeapon* WeaponToEquip = GetWorld()->SpawnActor<AWeapon>(w, myLoc, myRot);
+			AWeapon* WeaponToEquip = GetWorld()->SpawnActor<AWeapon>(Weapon, myLoc, myRot);
 			
+			EquippedWeaponAI = WeaponToEquip;
+			EquippedWeapon = EquippedWeaponAI;
+			
+			UE_LOG(LogTemp, Error, TEXT("EquipWeaponAI"))
+
 			if (EquippedWeapon)
 			{
 				EquippedWeapon->Dropped();
 			}
 
-			EquippedWeapon = WeaponToEquip;
-			EquippedWeaponAI = WeaponToEquip;
+			//
+		
+			EquippedWeaponAI->SetWeaponState(EWeaponState::EWS_Equipped);
 			EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
-			EquippedWeaponAI -> SetWeaponState(EWeaponState::EWS_Equipped);
 			const USkeletalMeshSocket* HandSocket = AICharacter->GetMesh()->GetSocketByName(FName("RightHandSocket"));
 			if (HandSocket)
 			{
+				HandSocket->AttachActor(EquippedWeaponAI, AICharacter->GetMesh());
 				HandSocket->AttachActor(EquippedWeapon, AICharacter->GetMesh());
 			}
 			EquippedWeapon->SetOwner(AICharacter);
 			EquippedWeaponAI->SetOwner(AICharacter);
-
-			if (CarriedAmmoMap.Contains(EquippedWeapon->GetWeaponType()))
-			{
-				CarriedAmmo = CarriedAmmoMap[EquippedWeapon->GetWeaponType()];
-			}
-
-			if (EquippedWeaponAI != nullptr)
-			{
-				//UE_LOG(LogTemp, Error, TEXT("EquippedWeapon != nullptr"))
-			}
 		}
 	}
 }
@@ -202,6 +199,22 @@ void UCombatComponent::OnRep_EquippedWeapon()
 	}	
 }
 
+void UCombatComponent::OnRep_EquippedWeaponAI()
+{
+	if (EquippedWeaponAI && AICharacter)
+	{
+		EquippedWeaponAI->SetWeaponState(EWeaponState::EWS_Equipped);
+		const USkeletalMeshSocket* HandSocket = AICharacter->GetMesh()->GetSocketByName(FName("RightHandSocket"));
+		if (HandSocket)
+		{
+			UE_LOG(LogTemp, Error, TEXT("OnRep_EquippedWeaponAI"))
+			HandSocket->AttachActor(EquippedWeaponAI, AICharacter->GetMesh());
+		}
+		//AICharacter->GetCharacterMovement()->bOrientRotationToMovement = false;
+		//AICharacter->bUseControllerRotationYaw = true;
+	}
+}
+
 void UCombatComponent::FireButtonPressed(bool bPressed)
 {
 	UE_LOG(LogTemp, Warning, TEXT("FireButtonPressed"))
@@ -226,6 +239,17 @@ void UCombatComponent::Fire()
 		}
 		StartFireTimer();
 	}
+}
+
+void UCombatComponent::Server_TraceUnderCrosshairsAI_Implementation(const FHitResult& TraceHitResult)
+{
+	Multicast_TraceUnderCrosshairsAI(TraceHitResult);
+}
+
+void UCombatComponent::Multicast_TraceUnderCrosshairsAI_Implementation(const FHitResult& TraceHitResult)
+{
+	auto t = TraceHitResult;
+	TraceUnderCrosshairsAI(t);
 }
 
 void UCombatComponent::TraceUnderCrosshairs(FHitResult& TraceHitResult)
@@ -264,6 +288,9 @@ void UCombatComponent::TraceUnderCrosshairs(FHitResult& TraceHitResult)
 			ECollisionChannel::ECC_Visibility//,
 			//CollisionParams
 		);
+
+		//DrawDebugLine(GetWorld(), Start, End, FColor::White, false, -1, 0, 2.0f);
+
 		if (!TraceHitResult.bBlockingHit)
 		{
 			TraceHitResult.ImpactPoint = End;
@@ -283,20 +310,14 @@ void UCombatComponent::TraceUnderCrosshairsAI(FHitResult& TraceHitResult)
 {
 	FVector ActorLocation = AICharacter->GetActorLocation();
 	FVector ActorForwardVector = AICharacter->GetActorForwardVector();
-	ActorLocation += FVector(100,100,0); // TODO This is KOSTYL'
+	ActorLocation += FVector(0,0,100); // TODO This is KOSTYL'
 	float LineLength = 3000.0f;
 
 	// Calculate the end point of the line
 	FVector LineEndPoint = ActorLocation + ActorForwardVector * LineLength;
 
 	// Draw a debug line from the actor's location to the calculated end point (the direction the actor is facing)
-	//DrawDebugLine(GetWorld(), ActorLocation, LineEndPoint, FColor::Green, false, -1, 0, 1.0f);
-
-	FVector2D ViewportSize;
-	if (GEngine && GEngine->GameViewport)
-	{
-		GEngine->GameViewport->GetViewportSize(ViewportSize);
-	}
+	DrawDebugLine(GetWorld(), ActorLocation, LineEndPoint, FColor::Green, false, -1, 0, 2.0f);
 
 	// Calculate the end point of the line
 	FVector End = ActorLocation + ActorForwardVector * 80000.f;
@@ -515,6 +536,7 @@ void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& T
 void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
 {
 	MulticastFire(TraceHitTarget);
+
 }
 
 void UCombatComponent::BeginPlay()
@@ -522,7 +544,6 @@ void UCombatComponent::BeginPlay()
 	Super::BeginPlay();
 	if (Character)
 	{
-	
 		if (Character->GetFollowCamera())
 		{
 			DefaultFOV = Character->GetFollowCamera()->FieldOfView;
@@ -532,9 +553,10 @@ void UCombatComponent::BeginPlay()
 		{
 			InitializeCarriedAmmo();
 		}
-	}
-	else {
-		EquipWeaponAI();
+	}else if (AICharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("AICharacter"))
+			EquipWeaponAI();
 	}
 }
 
@@ -556,20 +578,23 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 	if (Character && Character->IsLocallyControlled())
 	{
 		FHitResult HitResult;
-		TraceUnderCrosshairs(HitResult);
+		TraceUnderCrosshairs(HitResultAI);
+		
+		
 		HitTarget = HitResult.ImpactPoint;
+		//HitResultAI = HitResultAI.ImpactPoint;
 
 		SetHUDCrosshairs(DeltaTime);
 		InterpFOV(DeltaTime);
+		
 	}
 
 	if (AICharacter)
 	{
 		FHitResult HitResult;
 		TraceUnderCrosshairsAI(HitResult);
+		
 		HitTarget = HitResult.ImpactPoint;
-
-		//SetHUDCrosshairs(DeltaTime);
-		//InterpFOV(DeltaTime);
+		
 	}
 }

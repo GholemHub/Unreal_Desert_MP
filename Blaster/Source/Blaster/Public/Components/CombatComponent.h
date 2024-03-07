@@ -23,7 +23,6 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const;
 	void EquipWeaponAI();
 	void EquipWeapon(class AWeapon* WeaponToEquip);
-	//void EquipWeaponAI(class AWeapon* WeaponToEquip);
 	void Reload();
 	UFUNCTION(BlueprintCallable)
 	void FinishReloading();
@@ -50,6 +49,8 @@ protected:
 	void ServerSetAiming(bool bIsAiming);
 	UFUNCTION()
 	void OnRep_EquippedWeapon();
+	UFUNCTION()
+	void OnRep_EquippedWeaponAI();
 	
 
 	UFUNCTION(Server, Reliable)
@@ -57,7 +58,14 @@ protected:
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastFire(const FVector_NetQuantize& TraceHitTarget);
 
+	UFUNCTION(Server, Reliable)
+	void Server_TraceUnderCrosshairsAI(const FHitResult& TraceHitResult);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_TraceUnderCrosshairsAI(const FHitResult& TraceHitResult);
+
 	void TraceUnderCrosshairs(FHitResult& TraceHitResult);
+
 	void TraceUnderCrosshairsAI(FHitResult& TraceHitResult);
 
 	void SetHUDCrosshairs(float DeltaTime);
@@ -68,6 +76,7 @@ protected:
 	float CrosshaurShootingFactor;
 
 	FVector HitTarget;
+	FVector HitTargetAI;
 
 	FHUDPackage HUDPackage;
 
@@ -107,7 +116,8 @@ protected:
 	ECombatState CombatState = ECombatState::ECS_Unoccupied;
 	UFUNCTION()
 	void OnRep_CombatState();
-	
+	UPROPERTY(Replicated)
+	FHitResult HitResultAI;
 private:
 	class ABlasterCharacter* Character;
 	class AAICharacter* AICharacter;
@@ -117,6 +127,7 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_EquippedWeapon)
 	class AWeapon* EquippedWeapon;
+	UPROPERTY(ReplicatedUsing = OnRep_EquippedWeaponAI)
 	class AWeapon* EquippedWeaponAI;
 
 	UPROPERTY(Replicated)
@@ -124,7 +135,5 @@ private:
 	bool bFireBtnPressed; 
 
 	void UpdateAmmoValues();
-
-	//void SpawnWeapon();
 	
 };

@@ -23,7 +23,7 @@ void UWeaponComponent::Fire()
 void UWeaponComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	SpawnWeapon();
+	//SpawnWeapon();
 }
 
 void UWeaponComponent::SpawnWeapon()
@@ -33,7 +33,7 @@ void UWeaponComponent::SpawnWeapon()
 	ACharacter* Character = Cast<ACharacter>(GetOwner());
 	if (!Character) return;
 
-	CurrentWeapon = GetWorld()->SpawnActor<AWeapon>(WeaponClass);
+	//CurrentWeapon = GetWorld()->SpawnActor<AWeapon>(WeaponClass);
 	if (!CurrentWeapon) return;
 
 	

@@ -121,13 +121,13 @@ void UBlsterAnimInstance::NativeUpdateAnimationAI(float DeltaTime)
 
 		if (AICharacter)
 		{
-			bLocallyControlled = true;
+			//bLocallyControlled = true;
 			FTransform RightHandTransform = EquippedWeapon->GetWeaoponMesh()->GetSocketTransform(FName("hand_r"), ERelativeTransformSpace::RTS_World);
-			//FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(RightHandTransform.GetLocation(), RightHandTransform.GetLocation() + (RightHandTransform.GetLocation() - AICharacter->GetHitTarget()));
-			//RightHandRotation = FMath::RInterpTo(RightHandRotation, LookAtRotation, DeltaTime, 30.f);
+			FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(RightHandTransform.GetLocation(), RightHandTransform.GetLocation() + (RightHandTransform.GetLocation() - AICharacter->GetHitTarget()));
+			RightHandRotation = FMath::RInterpTo(RightHandRotation, LookAtRotation, DeltaTime, 30.f);
 
 			FTransform MuzzleTipTransform = EquippedWeapon->GetWeaoponMesh()->GetSocketTransform(FName("MuzzleFlash"), ERelativeTransformSpace::RTS_World);
-			//FVector MuzzleX(FRotationMatrix(MuzzleTipTransform.GetRotation().Rotator()).GetUnitAxis(EAxis::X));
+			FVector MuzzleX(FRotationMatrix(MuzzleTipTransform.GetRotation().Rotator()).GetUnitAxis(EAxis::X));
 
 			//UE_LOG(LogTemp, Error, TEXT("AICharacter"))
 
