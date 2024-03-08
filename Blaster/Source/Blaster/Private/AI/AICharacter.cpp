@@ -29,11 +29,6 @@ void AAICharacter::PostInitializeComponents()
 void AAICharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
-	
-
-	//EquipWeaponAI();
-
 }
 
 void AAICharacter::Tick(float DeltaTime)
@@ -110,14 +105,14 @@ FVector AAICharacter::GetHitTarget() const
 
 void AAICharacter::PlayReloadMontage()
 {
-	if (Combat == nullptr || Combat->EquippedWeapon == nullptr) return;
+	if (CombatAI == nullptr || CombatAI->EquippedWeapon == nullptr) return;
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance && ReloadMontage)
 	{
 		AnimInstance->Montage_Play(ReloadMontage);
 		FName SectioName;
 		UE_LOG(LogTemp, Error, TEXT("Reload:::AI"))
-		switch (Combat->EquippedWeapon->GetWeaponType())
+		switch (CombatAI->EquippedWeapon->GetWeaponType())
 		{
 		case EWeaponType::EWT_AssaultRifle:
 			SectioName = FName("Rifle");

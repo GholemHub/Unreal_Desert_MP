@@ -13,5 +13,7 @@ UCLASS()
 class BLASTER_API APlayerCharacter : public ABlasterCharacter
 {
 	GENERATED_BODY()
-	
+
+public:
+	APlayerCharacter();
 };

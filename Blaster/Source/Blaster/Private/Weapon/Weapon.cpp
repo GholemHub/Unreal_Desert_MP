@@ -85,6 +85,7 @@ void AWeapon::Fire(const FVector& HitTarget)
 	if (FireAnimation)
 	{
 		WeaponMesh->PlayAnimation(FireAnimation, false);
+		UE_LOG(LogTemp, Error, TEXT("Fire2"))
 	}
 	if (CassingClass)
 	{
@@ -96,6 +97,7 @@ void AWeapon::Fire(const FVector& HitTarget)
 			auto World = GetWorld();
 			if (World)
 			{
+				UE_LOG(LogTemp, Error, TEXT("Fire1"))
 				World->SpawnActor<ACasing>(
 					CassingClass,
 					SocketTransform.GetLocation(),
@@ -119,8 +121,6 @@ void AWeapon::OnRep_Owner()
 	else {
 		SetHUDAmmo();
 	}
-	
-
 }
 
 void AWeapon::SetHUDAmmo()

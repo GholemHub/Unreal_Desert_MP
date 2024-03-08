@@ -56,8 +56,7 @@ ABlasterCharacter::ABlasterCharacter()
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
 	GetMesh()->SetCollisionObjectType(ECC_SkeletalMesh);
 
-	Combat = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
-	Combat->SetIsReplicated(true);
+	
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 	HealthComponent->SetIsReplicated(true);
@@ -65,6 +64,9 @@ ABlasterCharacter::ABlasterCharacter()
 	TurningInPlace = ETurningInPlace::ETIP_NotTurning;
 
 	DissolveTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DissolveTimelineComponent"));
+
+	Combat = CreateDefaultSubobject<UCombatComponent>(TEXT("ZCombatComponent"));
+	Combat->SetIsReplicated(true);
 }
 
 void ABlasterCharacter::BeginPlay()

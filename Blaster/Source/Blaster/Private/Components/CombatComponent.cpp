@@ -29,7 +29,7 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UCombatComponent, EquippedWeapon);
-	DOREPLIFETIME(UCombatComponent, EquippedWeaponAI);
+	//DOREPLIFETIME(UCombatComponent, EquippedWeaponAI);
 
 	DOREPLIFETIME(UCombatComponent, bAiming);
 	DOREPLIFETIME(UCombatComponent, CombatState);
@@ -88,28 +88,24 @@ void UCombatComponent::EquipWeaponAI()
 			FVector myLoc(0, 0, 0);
 			AWeapon* WeaponToEquip = GetWorld()->SpawnActor<AWeapon>(Weapon, myLoc, myRot);
 			
-			EquippedWeaponAI = WeaponToEquip;
-			EquippedWeapon = EquippedWeaponAI;
+			//EquippedWeaponAI = WeaponToEquip;
+			EquippedWeapon = WeaponToEquip;
+			//EquippedWeapon = EquippedWeaponAI;
 			
-			UE_LOG(LogTemp, Error, TEXT("EquipWeaponAI"))
-
-			if (EquippedWeapon)
-			{
-				EquippedWeapon->Dropped();
-			}
+			UE_LOG(LogTemp, Error, TEXT("EquipWeapon %s"), *EquippedWeapon->GetName())
 
 			//
 		
-			EquippedWeaponAI->SetWeaponState(EWeaponState::EWS_Equipped);
+			//EquippedWeaponAI->SetWeaponState(EWeaponState::EWS_Equipped);
 			EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
 			const USkeletalMeshSocket* HandSocket = AICharacter->GetMesh()->GetSocketByName(FName("RightHandSocket"));
 			if (HandSocket)
 			{
-				HandSocket->AttachActor(EquippedWeaponAI, AICharacter->GetMesh());
+				//HandSocket->AttachActor(EquippedWeaponAI, AICharacter->GetMesh());
 				HandSocket->AttachActor(EquippedWeapon, AICharacter->GetMesh());
 			}
 			EquippedWeapon->SetOwner(AICharacter);
-			EquippedWeaponAI->SetOwner(AICharacter);
+			//EquippedWeaponAI->SetOwner(AICharacter);
 		}
 	}
 }
@@ -199,21 +195,21 @@ void UCombatComponent::OnRep_EquippedWeapon()
 	}	
 }
 
-void UCombatComponent::OnRep_EquippedWeaponAI()
-{
-	if (EquippedWeaponAI && AICharacter)
-	{
-		EquippedWeaponAI->SetWeaponState(EWeaponState::EWS_Equipped);
-		const USkeletalMeshSocket* HandSocket = AICharacter->GetMesh()->GetSocketByName(FName("RightHandSocket"));
-		if (HandSocket)
-		{
-			UE_LOG(LogTemp, Error, TEXT("OnRep_EquippedWeaponAI"))
-			HandSocket->AttachActor(EquippedWeaponAI, AICharacter->GetMesh());
-		}
-		//AICharacter->GetCharacterMovement()->bOrientRotationToMovement = false;
-		//AICharacter->bUseControllerRotationYaw = true;
-	}
-}
+//void UCombatComponent::OnRep_EquippedWeaponAI()
+//{
+//	if (EquippedWeaponAI && AICharacter)
+//	{
+//		EquippedWeaponAI->SetWeaponState(EWeaponState::EWS_Equipped);
+//		const USkeletalMeshSocket* HandSocket = AICharacter->GetMesh()->GetSocketByName(FName("RightHandSocket"));
+//		if (HandSocket)
+//		{
+//			UE_LOG(LogTemp, Error, TEXT("OnRep_EquippedWeaponAI"))
+//			HandSocket->AttachActor(EquippedWeaponAI, AICharacter->GetMesh());
+//		}
+//		//AICharacter->GetCharacterMovement()->bOrientRotationToMovement = false;
+//		//AICharacter->bUseControllerRotationYaw = true;
+//	}
+//}
 
 void UCombatComponent::FireButtonPressed(bool bPressed)
 {
@@ -235,22 +231,13 @@ void UCombatComponent::Fire()
 		if (EquippedWeapon)
 		{
 			UE_LOG(LogTemp, Error, TEXT("Fire::"))
-			//CrosshaurShootingFactor = .7f;
+			CrosshaurShootingFactor = .7f;
 		}
 		StartFireTimer();
 	}
 }
 
-void UCombatComponent::Server_TraceUnderCrosshairsAI_Implementation(const FHitResult& TraceHitResult)
-{
-	Multicast_TraceUnderCrosshairsAI(TraceHitResult);
-}
 
-void UCombatComponent::Multicast_TraceUnderCrosshairsAI_Implementation(const FHitResult& TraceHitResult)
-{
-	auto t = TraceHitResult;
-	TraceUnderCrosshairsAI(t);
-}
 
 void UCombatComponent::TraceUnderCrosshairs(FHitResult& TraceHitResult)
 {
@@ -317,7 +304,7 @@ void UCombatComponent::TraceUnderCrosshairsAI(FHitResult& TraceHitResult)
 	FVector LineEndPoint = ActorLocation + ActorForwardVector * LineLength;
 
 	// Draw a debug line from the actor's location to the calculated end point (the direction the actor is facing)
-	DrawDebugLine(GetWorld(), ActorLocation, LineEndPoint, FColor::Green, false, -1, 0, 2.0f);
+	//DrawDebugLine(GetWorld(), ActorLocation, LineEndPoint, FColor::Green, false, -1, 0, 2.0f);
 
 	// Calculate the end point of the line
 	FVector End = ActorLocation + ActorForwardVector * 80000.f;
@@ -518,15 +505,20 @@ bool UCombatComponent::CanFire()
 
 void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
 {
-	if (EquippedWeapon == nullptr) return;
+	if (EquippedWeapon == nullptr) { 
+		UE_LOG(LogTemp, Error, TEXT(" EquippedWeapon == nullptr"))
+			return; }
+
 	if (AICharacter && CombatState == ECombatState::ECS_Unoccupied)
 	{
+		UE_LOG(LogTemp, Error, TEXT(" EquippedWeaponAI != nullptr"))
 		AICharacter->PlayFireMontage(bAiming);
 		EquippedWeapon->Fire(TraceHitTarget);
 		return;
 	}
 	if (Character && CombatState == ECombatState::ECS_Unoccupied)
 	{
+		UE_LOG(LogTemp, Error, TEXT(" EquippedWeapon != nullptr"))
 		Character->PlayFireMontage(bAiming);
 		EquippedWeapon->Fire(TraceHitTarget);
 		return;
@@ -578,11 +570,8 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 	if (Character && Character->IsLocallyControlled())
 	{
 		FHitResult HitResult;
-		TraceUnderCrosshairs(HitResultAI);
-		
-		
+		TraceUnderCrosshairs(HitResult);
 		HitTarget = HitResult.ImpactPoint;
-		//HitResultAI = HitResultAI.ImpactPoint;
 
 		SetHUDCrosshairs(DeltaTime);
 		InterpFOV(DeltaTime);
@@ -593,8 +582,12 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 	{
 		FHitResult HitResult;
 		TraceUnderCrosshairsAI(HitResult);
-		
+		//UE_LOG(LogTemp, Error, TEXT("AWeaPON: %s"), *AICharacter->GetEquippedWeapon()->GetName())
 		HitTarget = HitResult.ImpactPoint;
+		
+	}
+	if (EquippedWeapon == nullptr)
+	{
 		
 	}
 }

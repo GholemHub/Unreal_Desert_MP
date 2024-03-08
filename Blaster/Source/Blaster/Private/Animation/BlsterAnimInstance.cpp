@@ -69,7 +69,7 @@ void UBlsterAnimInstance::NativeUpdateAnimation(float DeltaTime)
 
 			FTransform MuzzleTipTransform = EquippedWeapon->GetWeaoponMesh()->GetSocketTransform(FName("MuzzleFlash"), ERelativeTransformSpace::RTS_World);
 			FVector MuzzleX(FRotationMatrix(MuzzleTipTransform.GetRotation().Rotator()).GetUnitAxis(EAxis::X));
-			//DrawDebugLine(GetWorld(), MuzzleTipTransform.GetLocation(), MuzzleTipTransform.GetLocation() + MuzzleX * 1000.f, FColor::Purple);
+			DrawDebugLine(GetWorld(), MuzzleTipTransform.GetLocation(), MuzzleTipTransform.GetLocation() + MuzzleX * 1000.f, FColor::Red);
 			//DrawDebugLine(GetWorld(), MuzzleTipTransform.GetLocation(), BlasterCharacter->GetHitTarget(), FColor::Orange);
 		}
 	}
@@ -96,6 +96,7 @@ void UBlsterAnimInstance::NativeUpdateAnimationAI(float DeltaTime)
 	bIsAccelerating = AICharacter->GetCharacterMovement()->GetCurrentAcceleration().Size() > 0.f ? true : false;
 	bWeaponEquipped = AICharacter->IsWeaponEquipped();
 	EquippedWeapon = AICharacter->GetEquippedWeapon();
+	//EquippedWeaponAI = AICharacter->GetEquippedWeapon();
 	bIsCrouched = AICharacter->bIsCrouched;
 	bIsAimed = AICharacter->IsAiming();
 	TurningInPlace = AICharacter->GetTurningInPlace();
