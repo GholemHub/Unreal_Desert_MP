@@ -26,6 +26,8 @@ public:
 	void Reload();
 	UFUNCTION(BlueprintCallable)
 	void FinishReloading();
+	UFUNCTION(BlueprintCallable)
+	void FinishReloadingAI();
 	void Fire();
 
 	void FireButtonPressed(bool bPressed);
@@ -49,20 +51,11 @@ protected:
 	void ServerSetAiming(bool bIsAiming);
 	UFUNCTION()
 	void OnRep_EquippedWeapon();
-	//UFUNCTION()
-	//void OnRep_EquippedWeaponAI();
-	
 
 	UFUNCTION(Server, Reliable)
 	void ServerFire(const FVector_NetQuantize& TraceHitTarget);
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastFire(const FVector_NetQuantize& TraceHitTarget);
-
-	//UFUNCTION(Server, Reliable)
-	//void Server_TraceUnderCrosshairsAI(const FHitResult& TraceHitResult);
-
-	//UFUNCTION(NetMulticast, Reliable)
-	//void Multicast_TraceUnderCrosshairsAI(const FHitResult& TraceHitResult);
 
 	void TraceUnderCrosshairs(FHitResult& TraceHitResult);
 
@@ -106,6 +99,8 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void ServerReload();
 
+	void ServerReloadAI();
+
 	void HandlReload();
 
 	int32 AmountToReload();
@@ -121,17 +116,18 @@ private:
 	class AAICharacter* AICharacter;
 	
 	class ABlasterPlayerController* Controller;
+	class ABlasterAIController* AIController;
 	class ABlasterHUD* HUD;
 
 	UPROPERTY(ReplicatedUsing = OnRep_EquippedWeapon)
 	class AWeapon* EquippedWeapon;
-	/*UPROPERTY(ReplicatedUsing = OnRep_EquippedWeaponAI)
-	class AWeapon* EquippedWeaponAI;*/
+
 
 	UPROPERTY(Replicated)
 	bool bAiming;
 	bool bFireBtnPressed; 
 
 	void UpdateAmmoValues();
+	void UpdateAmmoValuesAI();
 	
 };

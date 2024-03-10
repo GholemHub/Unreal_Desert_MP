@@ -32,6 +32,7 @@ public:
 	FORCEINLINE float GetAO_Pitch() const { return AO_Pitch; }
 	virtual FVector GetHitTarget() const override;
 	virtual void PlayReloadMontage() override;
+	virtual ECombatState GetCombatState() const override;
 protected:
 	virtual void PostInitializeComponents() override;
 	void EquipAI(AWeapon* WeaponToEquip);
@@ -49,7 +50,7 @@ private:
 	float AO_Yaw;
 	float IntorpAO_Yaw;
 	float AO_Pitch;
-	FRotator StartingAimRotation;// = FRotator::ZeroRotator;
+	FRotator StartingAimRotation;
 
 
 };

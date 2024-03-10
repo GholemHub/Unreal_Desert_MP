@@ -37,6 +37,13 @@ void AAICharacter::Tick(float DeltaTime)
 	AimOffset(DeltaTime);
 }
 
+ECombatState AAICharacter::GetCombatState() const
+{
+	if (CombatAI == nullptr) return ECombatState::ECS_MAX;
+
+	return CombatAI->CombatState;
+}
+
 void AAICharacter::EquipAI(AWeapon* WeaponToEquip)
 {
 

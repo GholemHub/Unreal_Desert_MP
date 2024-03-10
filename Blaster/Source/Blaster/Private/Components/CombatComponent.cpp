@@ -38,16 +38,20 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 
 void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 {
+	//UE_LOG(LogTemp, Warning, TEXT("Equipp"))
+
 	if (Character == nullptr || WeaponToEquip == nullptr) return;
 	if (EquippedWeapon)
 	{
 		EquippedWeapon->Dropped();
 	}
+	//UE_LOG(LogTemp, Warning, TEXT("Equipp1"))
 	EquippedWeapon = WeaponToEquip;
 	EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
 	const USkeletalMeshSocket* HandSocket = Character->GetMesh()->GetSocketByName(FName("RightHandSocket"));
 	if (HandSocket)
 	{
+		
 		HandSocket->AttachActor(EquippedWeapon, Character->GetMesh());
 	}
 	EquippedWeapon->SetOwner(Character);
@@ -90,22 +94,22 @@ void UCombatComponent::EquipWeaponAI()
 			
 			//EquippedWeaponAI = WeaponToEquip;
 			EquippedWeapon = WeaponToEquip;
-			//EquippedWeapon = EquippedWeaponAI;
 			
 			UE_LOG(LogTemp, Error, TEXT("EquipWeapon %s"), *EquippedWeapon->GetName())
 
-			//
-		
-			//EquippedWeaponAI->SetWeaponState(EWeaponState::EWS_Equipped);
 			EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
 			const USkeletalMeshSocket* HandSocket = AICharacter->GetMesh()->GetSocketByName(FName("RightHandSocket"));
 			if (HandSocket)
 			{
-				//HandSocket->AttachActor(EquippedWeaponAI, AICharacter->GetMesh());
 				HandSocket->AttachActor(EquippedWeapon, AICharacter->GetMesh());
 			}
+
 			EquippedWeapon->SetOwner(AICharacter);
-			//EquippedWeaponAI->SetOwner(AICharacter);
+			
+			if (CarriedAmmoMap.Contains(EquippedWeapon->GetWeaponType()))
+			{
+				CarriedAmmo = CarriedAmmoMap[EquippedWeapon->GetWeaponType()];
+			}
 		}
 	}
 }
@@ -120,6 +124,7 @@ void UCombatComponent::Reload()
 
 void UCombatComponent::FinishReloading()
 {
+	FinishReloadingAI();
 	if (Character == nullptr) return;
 	if (Character->HasAuthority())
 	{
@@ -132,15 +137,33 @@ void UCombatComponent::FinishReloading()
 	}
 }
 
+void UCombatComponent::FinishReloadingAI()
+{
+	if (AICharacter == nullptr) return;
+	if (AICharacter->HasAuthority())
+	{
+		CombatState = ECombatState::ECS_Unoccupied;
+		UE_LOG(LogTemp, Warning, TEXT("CombatState = ECombatState::ECS_Unoccupied"))
+		UpdateAmmoValues();
+	}
+	if (bFireBtnPressed)
+	{
+		Fire();
+	}
+}
+
 void UCombatComponent::HandlReload()
 {
 	if (Character) {
 		Character->PlayReloadMontage();
+		UE_LOG(LogTemp, Warning, TEXT("!!!3 %s"), *Character->GetName())
 	}
 	if (AICharacter)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("!!!2"))
 		AICharacter->PlayReloadMontage();
 	}
+	UE_LOG(LogTemp, Warning, TEXT("!!!1"))
 }
 
 int32 UCombatComponent::AmountToReload()
@@ -155,9 +178,24 @@ int32 UCombatComponent::AmountToReload()
 	}
 	return 0;
 }
+void UCombatComponent::ServerReloadAI()
+{
+	if (AICharacter == nullptr || EquippedWeapon == nullptr) return;
+	int32 ReloadAmount = AmountToReload();
+	if (CarriedAmmoMap.Contains(EquippedWeapon->GetWeaponType()))
+	{
+		CarriedAmmoMap[EquippedWeapon->GetWeaponType()] -= ReloadAmount;
+		CarriedAmmo = CarriedAmmoMap[EquippedWeapon->GetWeaponType()];
+	}
 
+	EquippedWeapon->AddAmmo(-ReloadAmount);
+
+	CombatState = ECombatState::ECS_Reloading;
+	HandlReload();
+}
 void UCombatComponent::ServerReload_Implementation()
 {
+	ServerReloadAI();
 	if (Character == nullptr || EquippedWeapon == nullptr) return;
 
 	int32 ReloadAmount = AmountToReload();
@@ -195,25 +233,9 @@ void UCombatComponent::OnRep_EquippedWeapon()
 	}	
 }
 
-//void UCombatComponent::OnRep_EquippedWeaponAI()
-//{
-//	if (EquippedWeaponAI && AICharacter)
-//	{
-//		EquippedWeaponAI->SetWeaponState(EWeaponState::EWS_Equipped);
-//		const USkeletalMeshSocket* HandSocket = AICharacter->GetMesh()->GetSocketByName(FName("RightHandSocket"));
-//		if (HandSocket)
-//		{
-//			UE_LOG(LogTemp, Error, TEXT("OnRep_EquippedWeaponAI"))
-//			HandSocket->AttachActor(EquippedWeaponAI, AICharacter->GetMesh());
-//		}
-//		//AICharacter->GetCharacterMovement()->bOrientRotationToMovement = false;
-//		//AICharacter->bUseControllerRotationYaw = true;
-//	}
-//}
-
 void UCombatComponent::FireButtonPressed(bool bPressed)
 {
-	UE_LOG(LogTemp, Warning, TEXT("FireButtonPressed"))
+	UE_LOG(LogTemp, Warning, TEXT("FireButtonPressed %i"), bPressed)
 	bFireBtnPressed = bPressed;
 	if (bFireBtnPressed) {
 		Fire();
@@ -230,14 +252,12 @@ void UCombatComponent::Fire()
 		ServerFire(HitTarget);
 		if (EquippedWeapon)
 		{
-			UE_LOG(LogTemp, Error, TEXT("Fire::"))
+			UE_LOG(LogTemp, Error, TEXT("FireFinc"))
 			CrosshaurShootingFactor = .7f;
 		}
 		StartFireTimer();
 	}
 }
-
-
 
 void UCombatComponent::TraceUnderCrosshairs(FHitResult& TraceHitResult)
 {
@@ -437,11 +457,14 @@ void UCombatComponent::FireTimerFinished()
 {
 	if (EquippedWeapon == nullptr) return;
 	bCanFire = true;
+	
+
 	if (bFireBtnPressed && EquippedWeapon->bAutomatic) {
 		Fire();
 	}
 	if (EquippedWeapon->IsEmpty())
 	{
+		UE_LOG(LogTemp, Error, TEXT("Reload"))
 		Reload();
 	}
 }
@@ -478,6 +501,8 @@ void UCombatComponent::OnRep_CombatState()
 
 void UCombatComponent::UpdateAmmoValues()
 {
+	UpdateAmmoValuesAI();
+
 	if (Character == nullptr || EquippedWeapon == nullptr) return;
 
 	int32 ReloadAmount = AmountToReload();
@@ -497,28 +522,52 @@ void UCombatComponent::UpdateAmmoValues()
 	EquippedWeapon->AddAmmo(-ReloadAmount);
 }
 
+void UCombatComponent::UpdateAmmoValuesAI()
+{
+	if (AICharacter == nullptr || EquippedWeapon == nullptr) return;
+
+	int32 ReloadAmount = AmountToReload();
+
+	if (CarriedAmmoMap.Contains(EquippedWeapon->GetWeaponType()))
+	{
+		CarriedAmmoMap[EquippedWeapon->GetWeaponType()] -= ReloadAmount;
+		CarriedAmmo = CarriedAmmoMap[EquippedWeapon->GetWeaponType()];
+	}
+
+	EquippedWeapon->AddAmmo(-ReloadAmount);
+}
+
 bool UCombatComponent::CanFire()
 {
 	if (EquippedWeapon == nullptr) return false;
+	if (!EquippedWeapon->IsEmpty())
+	{
+		UE_LOG(LogTemp, Error, TEXT("!EquippedWeapon->IsEmpty()"))
+	}
+	if (bCanFire)
+	{
+		UE_LOG(LogTemp, Error, TEXT("bCanFire"))
+	}
+	if (CombatState == ECombatState::ECS_Unoccupied)
+	{
+		UE_LOG(LogTemp, Error, TEXT("CombatState == ECombatState::ECS_Unoccupied"))
+	}
 	return !EquippedWeapon->IsEmpty() && bCanFire && CombatState == ECombatState::ECS_Unoccupied;
 }
 
 void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
 {
-	if (EquippedWeapon == nullptr) { 
-		UE_LOG(LogTemp, Error, TEXT(" EquippedWeapon == nullptr"))
-			return; }
+	if (EquippedWeapon == nullptr) return; 
 
 	if (AICharacter && CombatState == ECombatState::ECS_Unoccupied)
 	{
-		UE_LOG(LogTemp, Error, TEXT(" EquippedWeaponAI != nullptr"))
 		AICharacter->PlayFireMontage(bAiming);
 		EquippedWeapon->Fire(TraceHitTarget);
 		return;
 	}
 	if (Character && CombatState == ECombatState::ECS_Unoccupied)
 	{
-		UE_LOG(LogTemp, Error, TEXT(" EquippedWeapon != nullptr"))
+		//UE_LOG(LogTemp, Error, TEXT(" EquippedWeapon != nullptr"))
 		Character->PlayFireMontage(bAiming);
 		EquippedWeapon->Fire(TraceHitTarget);
 		return;
@@ -547,8 +596,9 @@ void UCombatComponent::BeginPlay()
 		}
 	}else if (AICharacter)
 	{
-		UE_LOG(LogTemp, Error, TEXT("AICharacter"))
+		//UE_LOG(LogTemp, Error, TEXT("AICharacter"))
 			EquipWeaponAI();
+			InitializeCarriedAmmo();
 	}
 }
 
@@ -584,10 +634,6 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 		TraceUnderCrosshairsAI(HitResult);
 		//UE_LOG(LogTemp, Error, TEXT("AWeaPON: %s"), *AICharacter->GetEquippedWeapon()->GetName())
 		HitTarget = HitResult.ImpactPoint;
-		
-	}
-	if (EquippedWeapon == nullptr)
-	{
 		
 	}
 }

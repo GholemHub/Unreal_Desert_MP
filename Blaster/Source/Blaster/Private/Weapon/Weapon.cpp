@@ -212,6 +212,7 @@ void AWeapon::SetWeaponState(EWeaponState State)
 
 bool AWeapon::IsEmpty()
 {
+	UE_LOG(LogTemp, Error, TEXT("Ammo: %i"), Ammo)
 	return Ammo <= 0;
 }
 

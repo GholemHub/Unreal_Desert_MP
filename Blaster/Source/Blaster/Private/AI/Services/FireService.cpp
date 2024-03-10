@@ -19,7 +19,7 @@ void UFireService::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory
 	auto Blackboard = OwnerComp.GetBlackboardComponent();
 
 	auto HasAim = Blackboard && Blackboard->GetValueAsObject(EnemyActorKey.SelectedKeyName);
-
+	UE_LOG(LogTemp, Error, TEXT("Log1 FireServiceTick"))
 	//UE_LOG(LogTemp, Error, TEXT("Fire01"))
 	AActor* ControlledPawn = Controller->GetPawn();
 	if (ControlledPawn)
@@ -33,29 +33,10 @@ void UFireService::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory
 			UCombatComponent* LastComponent = ComponentsArray[ComponentsArray.Num() - 1];
 			if (LastComponent)
 			{
+				UE_LOG(LogTemp, Error, TEXT("Log1 HasAim: %i"), HasAim)
 				HasAim ? LastComponent->FireButtonPressed(true) : LastComponent->FireButtonPressed(false);
-				UE_LOG(LogTemp, Error, TEXT("FireService"))
 			}
-			// Use LastComponent as needed
-		}
-		else
-		{
-			// Handle case where there are no components attached to the actor
 		}
 	}
-
-	//if (Controller)
-	//{
-	//	//UE_LOG(LogTemp, Error, TEXT("Fire02"))
-	//		
-	//	const auto Combat = Controller->GetPawn()->FindComponentByClass<UCombatComponent>();
-	//	
-	//	if (Combat)
-	//	{
-	//		HasAim ? Combat->FireButtonPressed(true) : Combat->FireButtonPressed(false);
-	//		UE_LOG(LogTemp, Error, TEXT("FireService"))
-	//	}
-	//}
-
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
 }

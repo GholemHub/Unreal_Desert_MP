@@ -197,7 +197,7 @@ public:
 	FORCEINLINE bool IsElimmed() const { return bElimmed; }
 	FORCEINLINE bool IsAlive() const { return Health >= 0; }
 
-	ECombatState GetCombatState() const;
+	virtual ECombatState GetCombatState() const;
 
 	virtual FVector GetHitTarget() const;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))

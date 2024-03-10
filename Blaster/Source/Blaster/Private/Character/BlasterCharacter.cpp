@@ -56,7 +56,8 @@ ABlasterCharacter::ABlasterCharacter()
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
 	GetMesh()->SetCollisionObjectType(ECC_SkeletalMesh);
 
-	
+		Combat = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
+	Combat->SetIsReplicated(true);
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 	HealthComponent->SetIsReplicated(true);
@@ -65,8 +66,7 @@ ABlasterCharacter::ABlasterCharacter()
 
 	DissolveTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DissolveTimelineComponent"));
 
-	Combat = CreateDefaultSubobject<UCombatComponent>(TEXT("ZCombatComponent"));
-	Combat->SetIsReplicated(true);
+	
 }
 
 void ABlasterCharacter::BeginPlay()
@@ -334,11 +334,14 @@ void ABlasterCharacter::Move(const FInputActionValue& Value)
 
 void ABlasterCharacter::Equip()
 {
+	UE_LOG(LogTemp, Warning, TEXT("Equipp: 0"))
 	if (Combat)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Equipp: 01"))
 		if (HasAuthority())
 		{
 			Combat->EquipWeapon(OverlappingWeapon);
+			UE_LOG(LogTemp, Warning, TEXT("Equipp: 1"))
 		}
 		else {	
 			ServerEquipButtonPressed();
@@ -349,11 +352,11 @@ void ABlasterCharacter::Equip()
 void ABlasterCharacter::CrouchBtnPressed()
 {
 	if (!bIsCrouched && Combat->EquippedWeapon != 0) {
-		UE_LOG(LogTemp, Display, TEXT("Crouch without Weapon"), Combat->EquippedWeapon)
+		//UE_LOG(LogTemp, Display, TEXT("Crouch without Weapon"), Combat->EquippedWeapon)
 		Crouch();
 	}
 	else if(bIsCrouched && Combat->EquippedWeapon != 0){
-		UE_LOG(LogTemp, Display, TEXT("Uncrouch"), Combat->EquippedWeapon)
+		//UE_LOG(LogTemp, Display, TEXT("Uncrouch"), Combat->EquippedWeapon)
 		UnCrouch();
 	}
 	else {
@@ -502,7 +505,7 @@ void ABlasterCharacter::TurnInPlace(float DeltaTime)
 		
 		IntorpAO_Yaw = FMath::FInterpTo(IntorpAO_Yaw, 0.f, DeltaTime, 5.f);
 		AO_Yaw = IntorpAO_Yaw;
-		UE_LOG(LogTemp, Warning, TEXT("YAW2: %f"), AO_Yaw);
+		//UE_LOG(LogTemp, Warning, TEXT("YAW2: %f"), AO_Yaw);
 		
 		if (FMath::Abs(AO_Yaw) < 15.f)
 		{
